@@ -55,5 +55,4 @@ func Replay(ctx context.Context, js nats.JetStreamContext, aggregate, id string,
 	case <-lctx.Done():
 	case <-ctx.Done():
 	}
-	// return fn(lctx, id, messages)
 }
