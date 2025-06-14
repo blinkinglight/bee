@@ -3,7 +3,9 @@ package bee_test
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"testing"
+	"time"
 
 	"github.com/blinkinglight/bee"
 	"github.com/blinkinglight/bee/gen"
@@ -39,29 +41,40 @@ func (m *MockReplayHandler) ApplyEvent(event *gen.EventEnvelope) error {
 	return nil
 }
 
-func TestCore(t *testing.T) {
+func client() (*nats.Conn, func(), error) {
 	server, err := embeddednats.New(
 		context.Background(),
 		embeddednats.WithShouldClearData(true),
 		embeddednats.WithDirectory("./tmp"),
 		embeddednats.WithNATSServerOptions(&server.Options{
-			JetStream: true,
+			JetStream:    true,
+			NoLog:        false,
+			Debug:        true,
+			Trace:        true,
+			TraceVerbose: true,
 		}),
 	)
 	if err != nil {
-		t.Fatalf("Failed to start embedded NATS server: %v", err)
+		return nil, nil, err
 	}
 	server.WaitForServer()
 
-	defer server.Close()
-
 	nc, err := server.Client()
 
-	if err != nil {
-		t.Fatalf("Failed to connect to NATS server: %v", err)
-	}
+	return nc, func() {
+		nc.Close()
+		server.Close()
+	}, err
+}
 
-	defer nc.Close()
+func TestReplay(t *testing.T) {
+
+	nc, cleanup, err := client()
+	if err != nil {
+		t.Fatalf("Failed to create NATS client: %v", err)
+	}
+	defer cleanup()
+
 	js, err := nc.JetStream()
 	if err != nil {
 		t.Fatalf("Failed to get JetStream context: %v", err)
@@ -70,8 +83,6 @@ func TestCore(t *testing.T) {
 		Name:     "events",
 		Subjects: []string{"events.>"},
 	})
-
-	replayHandler := &MockReplayHandler{}
 
 	evt1 := &gen.EventEnvelope{
 		EventType: "user.created",
@@ -92,8 +103,8 @@ func TestCore(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to publish event: %v", err)
 	}
-
-	bee.Replay(t.Context(), js, "user", "*", bee.DeliverAll, replayHandler)
+	replayHandler := &MockReplayHandler{}
+	bee.Replay(t.Context(), js, "users", "*", bee.DeliverAll, replayHandler)
 
 	if replayHandler.Name != "John Smith" {
 		t.Errorf("Expected name to be 'John Smith', got '%s'", replayHandler.Name)
@@ -101,4 +112,145 @@ func TestCore(t *testing.T) {
 	if replayHandler.Country != "Canada" {
 		t.Errorf("Expected country to be 'Canada', got '%s'", replayHandler.Country)
 	}
+
+}
+
+func TestCommand(t *testing.T) {
+	nc, cleanup, err := client()
+	if err != nil {
+		t.Fatalf("Failed to create NATS client: %v", err)
+	}
+	defer cleanup()
+
+	js, err := nc.JetStream()
+	if err != nil {
+		t.Fatalf("Failed to get JetStream context: %v", err)
+	}
+
+	go func() {
+		bee.NewCommandProcessor(context.Background(), nc, js)
+	}()
+
+	service := New(js)
+	err = bee.Register(context.Background(), "users", service.Handle)
+	if err != nil {
+		t.Fatalf("Failed to register command handler: %v", err)
+	}
+	cmd1 := &gen.CommandEnvelope{
+		CommandType: "create",
+		AggregateId: "123",
+		Aggregate:   "users",
+		Payload:     []byte(`{"name": "John Doe", "country": "USA"}`),
+	}
+	b1, _ := proto.Marshal(cmd1)
+	_, err = js.Publish("cmds.users", b1)
+	if err != nil {
+		t.Fatalf("Failed to publish command: %v", err)
+	}
+
+	cmd2 := &gen.CommandEnvelope{
+		CommandType: "create",
+		AggregateId: "123",
+		Aggregate:   "users",
+		Payload:     []byte(`{"name": "John Doe", "country": "Canada"}`),
+	}
+
+	b2, _ := proto.Marshal(cmd2)
+	_, err = js.Publish("cmds.users", b2)
+	if err != nil {
+		t.Fatalf("Failed to publish command: %v", err)
+	}
+
+	time.Sleep(100 * time.Millisecond) // Wait for command processing
+
+	replayHandler := NewAggregate("123")
+	bee.Replay(t.Context(), js, "users", "*", bee.DeliverAll, replayHandler)
+
+	if replayHandler.Name != "John Doe" {
+		t.Errorf("Expected name to be 'John Doe', got '%s'", replayHandler.Name)
+	}
+	if replayHandler.Country != "Canada" {
+		t.Errorf("Expected country to be 'Canada', got '%s'", replayHandler.Country)
+	}
+
+}
+
+func New(js nats.JetStreamContext) *UserServiceTest {
+	return &UserServiceTest{
+		js: js,
+	}
+}
+
+type UserServiceTest struct {
+	js nats.JetStreamContext
+}
+
+func (s UserServiceTest) Handle(ctx context.Context, m *gen.CommandEnvelope) ([]*gen.EventEnvelope, error) {
+	agg := NewAggregate(m.AggregateId)
+	if m.CommandType == "create" {
+		return agg.ApplyCommand(ctx, m)
+	}
+	bee.Replay(ctx, s.js, m.Aggregate, m.AggregateId, bee.DeliverAll, agg)
+	return agg.ApplyCommand(ctx, m)
+}
+
+// --- UserAggregateTest implements ES aggregate logic ---
+type UserAggregateTest struct {
+	ID      string
+	Name    string
+	Country string
+	Deleted bool
+}
+
+type User struct {
+	Name    string `json:"name"`
+	Country string `json:"country"`
+}
+
+func NewAggregate(id string) *UserAggregateTest {
+	return &UserAggregateTest{ID: id}
+}
+
+func (u *UserAggregateTest) ApplyEvent(e *gen.EventEnvelope) error {
+	switch e.EventType {
+	case "created":
+		data, _ := bee.Unmarshal[User](e.Payload)
+		u.Name = data.Name
+		u.Country = data.Country
+		u.Deleted = false
+	case "updated":
+		data, _ := bee.Unmarshal[User](e.Payload)
+		u.Country = data.Country
+		u.Name = data.Name
+	case "deleted":
+		u.Deleted = true
+	}
+	return nil
+}
+
+func (u *UserAggregateTest) ApplyCommand(_ context.Context, c *gen.CommandEnvelope) ([]*gen.EventEnvelope, error) {
+	if c.AggregateId != u.ID {
+		return nil, fmt.Errorf("aggregate ID mismatch")
+	}
+	var event *gen.EventEnvelope = &gen.EventEnvelope{AggregateId: u.ID}
+	event.AggregateType = "users"
+	switch c.CommandType {
+	case "create":
+		event.EventType = "created"
+		event.Payload = c.Payload
+	case "update":
+		if u.Deleted {
+			return nil, fmt.Errorf("cannot update deleted user")
+		}
+		event.EventType = "updated"
+		event.Payload = c.Payload
+	case "delete":
+		if u.Deleted {
+			return nil, fmt.Errorf("user already deleted")
+		}
+		event.EventType = "deleted"
+	default:
+		return nil, fmt.Errorf("unknown command type: %s", c.CommandType)
+	}
+	return []*gen.EventEnvelope{event}, nil
 }

@@ -64,7 +64,6 @@ func Replay(ctx context.Context, js nats.JetStreamContext, aggregate, id string,
 				if m.Sequence.Stream == meta.Sequence.Stream {
 					last = true
 				}
-				// waiter.Reset(200 * time.Millisecond)
 				var event = &gen.EventEnvelope{}
 				_ = proto.Unmarshal(msg.Data, event)
 
