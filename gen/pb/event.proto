@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package gen;
+option go_package = "github.com/ituoga/iot/gen"; // sugeneruos tiesiai į gen/
+
+
+import "google/protobuf/timestamp.proto";
+
+message EventEnvelope {
+  string event_id = 1;
+  string correlation_id = 2;
+  google.protobuf.Timestamp timestamp = 3;
+  string aggregate_type = 4;
+  string aggregate_id = 5;
+  string event_type = 6;
+  bytes payload = 7;
+  string user_id = 8;
+  map<string, string> metadata = 9;
+}
