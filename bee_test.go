@@ -93,7 +93,7 @@ func TestCore(t *testing.T) {
 		t.Fatalf("Failed to publish event: %v", err)
 	}
 
-	bee.Replay(t.Context(), js, "user", "*", replayHandler)
+	bee.Replay(t.Context(), js, "user", "*", bee.DeliverAll, replayHandler)
 
 	if replayHandler.Name != "John Smith" {
 		t.Errorf("Expected name to be 'John Smith', got '%s'", replayHandler.Name)

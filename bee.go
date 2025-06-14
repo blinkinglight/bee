@@ -3,6 +3,7 @@ package bee
 import (
 	"context"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/blinkinglight/bee/gen"
@@ -10,15 +11,37 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+const DeliverAll = 0
+
 // interface
 type ReplayHandler interface {
 	ApplyEvent(m *gen.EventEnvelope) error
 }
 
-func Replay(ctx context.Context, js nats.JetStreamContext, aggregate, id string, fn ReplayHandler) {
+func Replay(ctx context.Context, js nats.JetStreamContext, aggregate, id string, seq uint64, fn ReplayHandler) {
 	lctx, cancel := context.WithCancel(ctx)
+
+	ls, err := js.SubscribeSync(fmt.Sprintf("events.%s.%s.>", aggregate, id), nats.DeliverLast())
+	if err != nil {
+		cancel()
+		return
+	}
+	ls.AutoUnsubscribe(1)
+	lmsg, err := ls.NextMsg(1 * time.Second)
+	if err != nil {
+		log.Printf("%v\n", err)
+		cancel()
+		return
+	}
+
+	meta, _ := lmsg.Metadata()
+
 	msgs := make(chan *nats.Msg, 128)
-	sub, err := js.ChanSubscribe(fmt.Sprintf("events.%s.%s.>", aggregate, id), msgs, nats.DeliverAll(), nats.ManualAck())
+	opt := nats.DeliverAll()
+	if seq > 0 {
+		opt = nats.StartSequence(seq)
+	}
+	sub, err := js.ChanSubscribe(fmt.Sprintf("events.%s.%s.>", aggregate, id), msgs, opt, nats.ManualAck())
 	if err != nil {
 		cancel()
 		return
@@ -27,27 +50,30 @@ func Replay(ctx context.Context, js nats.JetStreamContext, aggregate, id string,
 	defer sub.Unsubscribe()
 
 	go func() {
-		delay := 1000 * time.Millisecond
-		waiter := time.NewTimer(delay)
-		waiter.Reset(delay)
 		for {
 			select {
 			case <-ctx.Done():
-				cancel()
-				return
-			case <-waiter.C:
 				cancel()
 				return
 			case msg := <-msgs:
 				if msg == nil {
 					continue
 				}
-				waiter.Reset(200 * time.Millisecond)
+				m, _ := msg.Metadata()
+				last := false
+				if m.Sequence.Stream == meta.Sequence.Stream {
+					last = true
+				}
+				// waiter.Reset(200 * time.Millisecond)
 				var event = &gen.EventEnvelope{}
 				_ = proto.Unmarshal(msg.Data, event)
 
 				fn.ApplyEvent(event)
 				msg.Ack()
+				if last {
+					cancel()
+					return
+				}
 			}
 		}
 	}()
