@@ -3,8 +3,6 @@ package bee
 import (
 	"context"
 	"fmt"
-	"log"
-	"time"
 
 	"github.com/blinkinglight/bee/gen"
 	"github.com/nats-io/nats.go"
@@ -27,9 +25,8 @@ func Replay(ctx context.Context, js nats.JetStreamContext, aggregate, id string,
 		return
 	}
 	ls.AutoUnsubscribe(1)
-	lmsg, err := ls.NextMsg(1 * time.Second)
-	if err != nil {
-		log.Printf("%v\n", err)
+	lmsg, _ := ls.NextMsg(0)
+	if lmsg == nil {
 		cancel()
 		return
 	}

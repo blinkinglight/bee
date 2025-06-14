@@ -52,7 +52,7 @@ func NewCommandProcessor(ctx context.Context, nc *nats.Conn, js nats.JetStreamCo
 		for {
 			err := cp.init(c, cancel)
 			if err != nil {
-				time.Sleep(1 * time.Second)
+				log.Printf("Error initializing command processor: %v", err)
 				continue
 			}
 		}
@@ -60,7 +60,7 @@ func NewCommandProcessor(ctx context.Context, nc *nats.Conn, js nats.JetStreamCo
 	<-c.Done()
 }
 
-func (cp *CommandProcessor) init(_ context.Context, cancel context.CancelFunc) error {
+func (cp *CommandProcessor) init(ctx context.Context, cancel context.CancelFunc) error {
 
 	_, _ = cp.js.AddStream(&nats.StreamConfig{
 		Name:       commandsStream,
@@ -71,72 +71,65 @@ func (cp *CommandProcessor) init(_ context.Context, cancel context.CancelFunc) e
 		Duplicates: 5 * time.Minute,
 	})
 
-	_, _ = cp.js.AddConsumer(commandsStream, &nats.ConsumerConfig{
-		Durable:       commandsDurableName,
-		FilterSubject: commandsSubject,
-		AckPolicy:     nats.AckExplicitPolicy,
-	})
+	var msgs = make(chan *nats.Msg, 256)
 
-	sub, err := cp.js.PullSubscribe(commandsSubject, commandsDurableName, nats.BindStream(commandsStream), nats.ManualAck(), nats.DeliverAll())
+	sub, err := cp.js.Subscribe(commandsSubject, func(msg *nats.Msg) {
+		log.Printf("Received command on subject %s", msg.Subject)
+		msgs <- msg
+	}, nats.BindStream(commandsStream), nats.ManualAck(), nats.DeliverAll(), nats.Durable(commandsDurableName), nats.MaxAckPending(200))
+
 	if err != nil {
-		return err
+		log.Printf("Error subscribing to commands: %v", err)
+		cancel()
 	}
-	for {
-		msgs, err := sub.Fetch(1, nats.MaxWait(1*time.Second))
+	defer sub.Unsubscribe()
+
+	for msg := range msgs {
+		log.Printf("Received command on subject %s", msg.Subject)
+		var cmd gen.CommandEnvelope
+		err := proto.Unmarshal(msg.Data, &cmd)
 		if err != nil {
-			if err == context.DeadlineExceeded || err == nats.ErrTimeout {
-				return err
-			}
-			if err == nats.ErrConnectionClosed || err == nats.ErrFetchDisconnected {
-				return err
-			}
-			log.Printf("Error fetching messages: %v", err)
+			log.Printf("Error unmarshalling message: %v", err)
+			msg.Ack()
 			continue
 		}
-		for _, msg := range msgs {
-			var cmd gen.CommandEnvelope
-			err := proto.Unmarshal(msg.Data, &cmd)
-			if err != nil {
-				log.Printf("Error unmarshalling message: %v", err)
-				msg.Ack()
-				continue
-			}
 
-			errorNotificationSubject := fmt.Sprintf("notifications.%s.error", cmd.CorrelationId)
-			successNotificationSubject := fmt.Sprintf("notifications.%s.success", cmd.CorrelationId)
+		errorNotificationSubject := fmt.Sprintf("notifications.%s.error", cmd.CorrelationId)
+		successNotificationSubject := fmt.Sprintf("notifications.%s.success", cmd.CorrelationId)
 
-			handler, err := getCommandHandler(cmd.Aggregate)
-			if err != nil {
-				log.Printf("Error getting command handler: %v", err)
+		handler, err := getCommandHandler(cmd.Aggregate)
+		if err != nil {
+			log.Printf("Error getting command handler: %v", err)
+			if cmd.CorrelationId != "" {
 				cp.nc.Publish(errorNotificationSubject, []byte(`{"message":"`+err.Error()+`"}`))
-				msg.Ack()
-				continue
 			}
-
-			events, err := handler(context.Background(), &cmd)
-			if err != nil {
-				log.Printf("Error handling command: %v", err)
-				cp.nc.Publish(errorNotificationSubject, []byte(`{"message":"`+err.Error()+`"}`))
-				msg.Ack()
-				continue
-			}
-
-			if events == nil {
-				cp.nc.Publish(successNotificationSubject, []byte(`{"message":"`+cmd.AggregateId+`"}`))
-				msg.Ack()
-				continue
-			}
-
-			for _, event := range events {
-				eventSubject := fmt.Sprintf("events.%s.%s.%s", event.AggregateType, event.AggregateId, event.EventType)
-				b, _ := proto.Marshal(event)
-				if _, err := cp.js.Publish(eventSubject, b); err != nil {
-					log.Printf("Error publishing event")
-					msg.Ack()
-				}
-			}
-
-			_ = msg.Ack()
+			msg.Ack()
+			continue
 		}
+
+		events, err := handler(context.Background(), &cmd)
+		if err != nil {
+			log.Printf("Error handling command: %v", err)
+			if cmd.CorrelationId != "" {
+				cp.nc.Publish(errorNotificationSubject, []byte(`{"message":"`+err.Error()+`"}`))
+			}
+			msg.Ack()
+			continue
+		}
+
+		for _, event := range events {
+			eventSubject := fmt.Sprintf("events.%s.%s.%s", event.AggregateType, event.AggregateId, event.EventType)
+			b, _ := proto.Marshal(event)
+			if _, err := cp.js.Publish(eventSubject, b); err != nil {
+				log.Printf("Error publishing event %v", err)
+			}
+		}
+
+		if cmd.CorrelationId != "" {
+			cp.nc.Publish(successNotificationSubject, []byte(`{"message":"`+cmd.AggregateId+`"}`))
+		}
+		_ = msg.Ack()
 	}
+	<-ctx.Done()
+	return nil
 }
