@@ -21,6 +21,7 @@ type UserService struct {
 
 func (s UserService) Handle(ctx context.Context, m *gen.CommandEnvelope) ([]*gen.EventEnvelope, error) {
 	agg := NewAggregate(m.AggregateId)
+
 	bee.Replay(ctx, s.js, m.Aggregate, m.AggregateId, bee.DeliverAll, agg)
 
 	if agg.Found && m.CommandType == "create" {
