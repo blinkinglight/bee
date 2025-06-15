@@ -86,7 +86,7 @@ func TestReplay(t *testing.T) {
 	})
 
 	evt1 := &gen.EventEnvelope{
-		EventType:     "user.created",
+		EventType:     "created",
 		AggregateType: "users",
 		AggregateId:   "123",
 		Payload:       []byte(`{"name": "John Doe", "country": "USA"}`),
@@ -98,7 +98,7 @@ func TestReplay(t *testing.T) {
 	}
 
 	evt2 := &gen.EventEnvelope{
-		EventType:     "user.updated",
+		EventType:     "updated",
 		AggregateType: "users",
 		AggregateId:   "123",
 		Payload:       []byte(`{"name": "John Smith", "country": "Canada"}`),
@@ -131,13 +131,10 @@ func TestCommand(t *testing.T) {
 		t.Fatalf("Failed to get JetStream context: %v", err)
 	}
 
-	go bee.NewCommandProcessor(context.Background(), nc, js, "cmds.users", "users_cmd", New(js).Handle)
+	go bee.NewCommandProcessor(context.Background(), nc, js, "cmds.users", "users_cmds", New(js).Handle)
 
-	service := New(js)
-	err = bee.Register(context.Background(), "users", service.Handle)
-	if err != nil {
-		t.Fatalf("Failed to register command handler: %v", err)
-	}
+	// service := New(js)
+	// err = bee.Register(context.Background(), "users", service.Handle)
 	cmd1 := &gen.CommandEnvelope{
 		CommandType: "create",
 		AggregateId: "123",
@@ -149,7 +146,6 @@ func TestCommand(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to publish command: %v", err)
 	}
-
 	cmd2 := &gen.CommandEnvelope{
 		CommandType: "update",
 		AggregateId: "123",
@@ -163,7 +159,7 @@ func TestCommand(t *testing.T) {
 		t.Fatalf("Failed to publish command: %v", err)
 	}
 
-	time.Sleep(100 * time.Millisecond) // Wait for command processing
+	time.Sleep(500 * time.Millisecond) // Wait for command processing
 
 	replayHandler := NewAggregate("123")
 	bee.Replay(t.Context(), js, "users", "*", bee.DeliverAll, replayHandler)
@@ -189,9 +185,6 @@ type UserServiceTest struct {
 
 func (s UserServiceTest) Handle(ctx context.Context, m *gen.CommandEnvelope) ([]*gen.EventEnvelope, error) {
 	agg := NewAggregate(m.AggregateId)
-	if m.CommandType == "create" {
-		return agg.ApplyCommand(ctx, m)
-	}
 	bee.Replay(ctx, s.js, m.Aggregate, m.AggregateId, bee.DeliverAll, agg)
 	return agg.ApplyCommand(ctx, m)
 }

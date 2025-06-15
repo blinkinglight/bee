@@ -17,28 +17,10 @@ const commandsDurableName = "commands"
 const commandsStream = "COMMANDS"
 
 var (
-	registry = make(map[string]CommandHandlerFunc)
-	mu       = &sync.RWMutex{}
+	mu = &sync.RWMutex{}
 )
 
 type CommandHandlerFunc func(ctx context.Context, m *gen.CommandEnvelope) ([]*gen.EventEnvelope, error)
-
-func Register(ctx context.Context, aggregate string, handler CommandHandlerFunc) error {
-	mu.Lock()
-	defer mu.Unlock()
-	if _, exists := registry[aggregate]; exists {
-		return fmt.Errorf("aggregate %s already registered", aggregate)
-	}
-	registry[aggregate] = handler
-	return nil
-}
-
-func getCommandHandler(aggregate string) (CommandHandlerFunc, error) {
-	if _, ok := registry[aggregate]; !ok {
-		return nil, fmt.Errorf("aggregate %s not found", aggregate)
-	}
-	return registry[aggregate], nil
-}
 
 type CommandProcessor struct {
 	js      nats.JetStreamContext
@@ -108,16 +90,6 @@ func (cp *CommandProcessor) init(ctx context.Context, cancel context.CancelFunc)
 
 			errorNotificationSubject := fmt.Sprintf("notifications.%s.error", cmd.CorrelationId)
 			successNotificationSubject := fmt.Sprintf("notifications.%s.success", cmd.CorrelationId)
-
-			// handler, err := getCommandHandler(cmd.Aggregate)
-			// if err != nil {
-			// 	log.Printf("Error getting command handler: %v", err)
-			// 	if cmd.CorrelationId != "" {
-			// 		cp.nc.Publish(errorNotificationSubject, []byte(`{"message":"`+err.Error()+`"}`))
-			// 	}
-			// 	msg.Ack()
-			// 	continue
-			// }
 
 			events, err := cp.handler(context.Background(), &cmd)
 			if err != nil {

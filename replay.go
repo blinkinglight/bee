@@ -18,7 +18,6 @@ type ReplayHandler interface {
 
 func Replay(ctx context.Context, js nats.JetStreamContext, aggregate, id string, seq uint64, fn ReplayHandler) {
 	lctx, cancel := context.WithCancel(ctx)
-
 	ls, err := js.SubscribeSync(fmt.Sprintf("events.%s.%s.>", aggregate, id), nats.DeliverLast())
 	if err != nil {
 		cancel()
