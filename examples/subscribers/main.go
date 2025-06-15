@@ -9,6 +9,8 @@ import (
 )
 
 func main() {
+	ctx := context.Background()
+
 	nc, err := nats.Connect(nats.DefaultURL)
 
 	if err != nil {
@@ -30,11 +32,7 @@ func main() {
 		Replicas:  1,
 	})
 
-	go bee.NewCommandProcessor(context.Background(), nc, js)
-
-	if err := bee.Register(context.Background(), "users", NewService(js).Handle); err != nil {
-		panic(err)
-	}
+	go bee.NewCommandProcessor(ctx, nc, js, "cmds.users", "users_cmd", NewService(js).Handle)
 
 	runProjection(js)
 

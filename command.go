@@ -41,12 +41,15 @@ func getCommandHandler(aggregate string) (CommandHandlerFunc, error) {
 }
 
 type CommandProcessor struct {
-	js nats.JetStreamContext
-	nc *nats.Conn
+	js      nats.JetStreamContext
+	nc      *nats.Conn
+	subject string
+	durable string
+	handler CommandHandlerFunc
 }
 
-func NewCommandProcessor(ctx context.Context, nc *nats.Conn, js nats.JetStreamContext) {
-	cp := &CommandProcessor{js: js, nc: nc}
+func NewCommandProcessor(ctx context.Context, nc *nats.Conn, js nats.JetStreamContext, subject string, durable string, handler CommandHandlerFunc) {
+	cp := &CommandProcessor{js: js, nc: nc, subject: subject, durable: durable, handler: handler}
 	c, cancel := context.WithCancel(ctx)
 	go func() {
 		for {
@@ -71,7 +74,17 @@ func (cp *CommandProcessor) init(ctx context.Context, cancel context.CancelFunc)
 		Duplicates: 5 * time.Minute,
 	})
 
-	sub, err := cp.js.PullSubscribe(commandsSubject, commandsDurableName, nats.BindStream(commandsStream), nats.ManualAck())
+	_, err := cp.js.AddConsumer(commandsStream, &nats.ConsumerConfig{
+		Name:           cp.durable,
+		Durable:        cp.durable,
+		DeliverSubject: cp.subject,
+		AckPolicy:      nats.AckExplicitPolicy,
+	})
+	if err != nil {
+		return err
+	}
+
+	sub, err := cp.js.PullSubscribe(cp.subject, cp.durable, nats.BindStream(commandsStream), nats.ManualAck())
 
 	if err != nil {
 		log.Printf("Error subscribing to commands: %v", err)
@@ -97,17 +110,17 @@ func (cp *CommandProcessor) init(ctx context.Context, cancel context.CancelFunc)
 			errorNotificationSubject := fmt.Sprintf("notifications.%s.error", cmd.CorrelationId)
 			successNotificationSubject := fmt.Sprintf("notifications.%s.success", cmd.CorrelationId)
 
-			handler, err := getCommandHandler(cmd.Aggregate)
-			if err != nil {
-				log.Printf("Error getting command handler: %v", err)
-				if cmd.CorrelationId != "" {
-					cp.nc.Publish(errorNotificationSubject, []byte(`{"message":"`+err.Error()+`"}`))
-				}
-				msg.Ack()
-				continue
-			}
+			// handler, err := getCommandHandler(cmd.Aggregate)
+			// if err != nil {
+			// 	log.Printf("Error getting command handler: %v", err)
+			// 	if cmd.CorrelationId != "" {
+			// 		cp.nc.Publish(errorNotificationSubject, []byte(`{"message":"`+err.Error()+`"}`))
+			// 	}
+			// 	msg.Ack()
+			// 	continue
+			// }
 
-			events, err := handler(context.Background(), &cmd)
+			events, err := cp.handler(context.Background(), &cmd)
 			if err != nil {
 				log.Printf("Error handling command: %v", err)
 				if cmd.CorrelationId != "" {

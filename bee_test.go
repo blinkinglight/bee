@@ -131,9 +131,7 @@ func TestCommand(t *testing.T) {
 		t.Fatalf("Failed to get JetStream context: %v", err)
 	}
 
-	go func() {
-		bee.NewCommandProcessor(context.Background(), nc, js)
-	}()
+	go bee.NewCommandProcessor(context.Background(), nc, js, "cmds.users", "users_cmd", New(js).Handle)
 
 	service := New(js)
 	err = bee.Register(context.Background(), "users", service.Handle)
