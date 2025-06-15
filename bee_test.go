@@ -36,7 +36,7 @@ func (m *MockReplayHandler) ApplyEvent(event *gen.EventEnvelope) error {
 		m.Name = tmp.Name
 		m.Country = tmp.Country
 	default:
-		return nil // Ignore other event types
+		return nil
 	}
 	return nil
 }
@@ -52,6 +52,7 @@ func client() (*nats.Conn, func(), error) {
 			Debug:        true,
 			Trace:        true,
 			TraceVerbose: true,
+			Port:         4333,
 		}),
 	)
 	if err != nil {
@@ -85,21 +86,25 @@ func TestReplay(t *testing.T) {
 	})
 
 	evt1 := &gen.EventEnvelope{
-		EventType: "user.created",
-		Payload:   []byte(`{"name": "John Doe", "country": "USA"}`),
+		EventType:     "user.created",
+		AggregateType: "users",
+		AggregateId:   "123",
+		Payload:       []byte(`{"name": "John Doe", "country": "USA"}`),
 	}
 	b1, _ := proto.Marshal(evt1)
-	_, err = js.Publish("events.user.123.created", b1)
+	_, err = js.Publish("events.users.123.created", b1)
 	if err != nil {
 		t.Fatalf("Failed to publish event: %v", err)
 	}
 
 	evt2 := &gen.EventEnvelope{
-		EventType: "user.updated",
-		Payload:   []byte(`{"name": "John Smith", "country": "Canada"}`),
+		EventType:     "user.updated",
+		AggregateType: "users",
+		AggregateId:   "123",
+		Payload:       []byte(`{"name": "John Smith", "country": "Canada"}`),
 	}
 	b2, _ := proto.Marshal(evt2)
-	_, err = js.Publish("events.user.123.updated", b2)
+	_, err = js.Publish("events.users.123.updated", b2)
 	if err != nil {
 		t.Fatalf("Failed to publish event: %v", err)
 	}
@@ -112,7 +117,6 @@ func TestReplay(t *testing.T) {
 	if replayHandler.Country != "Canada" {
 		t.Errorf("Expected country to be 'Canada', got '%s'", replayHandler.Country)
 	}
-
 }
 
 func TestCommand(t *testing.T) {
@@ -149,7 +153,7 @@ func TestCommand(t *testing.T) {
 	}
 
 	cmd2 := &gen.CommandEnvelope{
-		CommandType: "create",
+		CommandType: "update",
 		AggregateId: "123",
 		Aggregate:   "users",
 		Payload:     []byte(`{"name": "John Doe", "country": "Canada"}`),
@@ -212,6 +216,7 @@ func NewAggregate(id string) *UserAggregateTest {
 }
 
 func (u *UserAggregateTest) ApplyEvent(e *gen.EventEnvelope) error {
+	// log.Printf("Applying event: %s for aggregate ID: %s", e.EventType, u.ID)
 	switch e.EventType {
 	case "created":
 		data, _ := bee.Unmarshal[User](e.Payload)

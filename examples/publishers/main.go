@@ -23,7 +23,7 @@ func main() {
 	}
 
 	base, _ := strconv.Atoi(os.Args[1])
-
+	_ = base
 	for i := 0; i < 10; i++ {
 		cmd := &gen.CommandEnvelope{
 			Aggregate:     "users",
@@ -35,4 +35,18 @@ func main() {
 		b, _ := proto.Marshal(cmd)
 		js.Publish("cmds.users", b)
 	}
+
+	{
+		i := 9
+		cmd := &gen.CommandEnvelope{
+			Aggregate:     "users",
+			AggregateId:   fmt.Sprintf("user-%d", base+i),
+			CommandType:   "delete",
+			CorrelationId: fmt.Sprintf("correlation-%d", base+i),
+			Payload:       nil,
+		}
+		b, _ := proto.Marshal(cmd)
+		js.Publish("cmds.users", b)
+	}
+
 }

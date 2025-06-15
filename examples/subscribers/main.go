@@ -30,9 +30,7 @@ func main() {
 		Replicas:  1,
 	})
 
-	go func() {
-		bee.NewCommandProcessor(context.Background(), nc, js)
-	}()
+	go bee.NewCommandProcessor(context.Background(), nc, js)
 
 	if err := bee.Register(context.Background(), "users", NewService(js).Handle); err != nil {
 		panic(err)

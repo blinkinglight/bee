@@ -62,7 +62,9 @@ func Replay(ctx context.Context, js nats.JetStreamContext, aggregate, id string,
 					last = true
 				}
 				var event = &gen.EventEnvelope{}
-				_ = proto.Unmarshal(msg.Data, event)
+				if err := proto.Unmarshal(msg.Data, event); err != nil {
+					_ = err
+				}
 
 				fn.ApplyEvent(event)
 				msg.Ack()
