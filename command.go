@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"sync"
 	"time"
 
 	"github.com/blinkinglight/bee/gen"
@@ -13,12 +12,7 @@ import (
 )
 
 const commandsSubject = "cmds.>"
-const commandsDurableName = "commands"
 const commandsStream = "COMMANDS"
-
-var (
-	mu = &sync.RWMutex{}
-)
 
 type CommandHandlerFunc func(ctx context.Context, m *gen.CommandEnvelope) ([]*gen.EventEnvelope, error)
 
@@ -30,7 +24,9 @@ type CommandProcessor struct {
 	handler CommandHandlerFunc
 }
 
-func NewCommandProcessor(ctx context.Context, nc *nats.Conn, js nats.JetStreamContext, subject string, durable string, handler CommandHandlerFunc) {
+func NewCommandProcessor(ctx context.Context, subject string, durable string, handler CommandHandlerFunc) {
+	nc, _ := Nats(ctx)
+	js, _ := JetStream(ctx)
 	cp := &CommandProcessor{js: js, nc: nc, subject: subject, durable: durable, handler: handler}
 	c, cancel := context.WithCancel(ctx)
 	go func() {

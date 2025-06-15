@@ -32,7 +32,10 @@ func main() {
 		Replicas:  1,
 	})
 
-	go bee.NewCommandProcessor(ctx, nc, js, "cmds.users", "users_cmd", NewService(js).Handle)
+	ctx = bee.WithNats(ctx, nc)
+	ctx = bee.WithJetStream(ctx, js)
+
+	go bee.NewCommandProcessor(ctx, "cmds.users", "users_cmd", NewService(js).Handle)
 
 	runProjection(js)
 

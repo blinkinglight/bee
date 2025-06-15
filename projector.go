@@ -21,7 +21,8 @@ type Projector interface {
 	Querier
 }
 
-func Project(ctx context.Context, js nats.JetStreamContext, durable, aggregate, id string, fn EventApplier) {
+func Project(ctx context.Context, durable, aggregate, id string, fn EventApplier) {
+	js, _ := JetStream(ctx)
 	sub, err := js.Subscribe(fmt.Sprintf("events.%s.%s.>", aggregate, id), func(msg *nats.Msg) {
 		if msg == nil {
 			return

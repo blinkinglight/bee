@@ -131,7 +131,9 @@ func TestCommand(t *testing.T) {
 		t.Fatalf("Failed to get JetStream context: %v", err)
 	}
 
-	go bee.NewCommandProcessor(context.Background(), nc, js, "cmds.users", "users_cmds", New(js).Handle)
+	ctx := bee.WithNats(context.Background(), nc)
+	ctx = bee.WithJetStream(ctx, js)
+	go bee.NewCommandProcessor(ctx, "cmds.users", "users_cmds", New(js).Handle)
 
 	// service := New(js)
 	// err = bee.Register(context.Background(), "users", service.Handle)

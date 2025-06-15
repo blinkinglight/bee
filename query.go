@@ -18,7 +18,12 @@ type QueryMany struct {
 	In     map[string][]interface{} `json:"in"`
 }
 
-func Query(ctx context.Context, nc *nats.Conn, aggregate string, fn Querier) error {
+type QueryAny struct {
+	Name string `json:"name"`
+}
+
+func Query(ctx context.Context, aggregate string, fn Querier) error {
+	nc, _ := Nats(ctx)
 	_, _ = nc.Subscribe("query."+aggregate+".get", func(msg *nats.Msg) {
 		if msg == nil {
 			return
@@ -48,6 +53,29 @@ func Query(ctx context.Context, nc *nats.Conn, aggregate string, fn Querier) err
 		}
 
 		query := &QueryMany{}
+		if err := json.Unmarshal(msg.Data, query); err != nil {
+			return
+		}
+
+		result, err := fn.Query(query)
+		if err != nil {
+			msg.Respond([]byte(err.Error()))
+			return
+		}
+		response, err := json.Marshal(result)
+		if err != nil {
+			msg.Respond([]byte(err.Error()))
+			return
+		}
+		msg.Respond(response)
+
+	})
+	_, _ = nc.Subscribe("query."+aggregate+".any", func(msg *nats.Msg) {
+		if msg == nil {
+			return
+		}
+
+		query := &QueryAny{}
 		if err := json.Unmarshal(msg.Data, query); err != nil {
 			return
 		}
