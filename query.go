@@ -12,8 +12,10 @@ type QueryOne struct {
 }
 
 type QueryMany struct {
-	Limit int `json:"limit"`
-	Page  int `json:"page"`
+	Limit  int                      `json:"limit"`
+	Page   int                      `json:"page"`
+	Filter map[string]interface{}   `json:"filter"`
+	In     map[string][]interface{} `json:"in"`
 }
 
 func Query(ctx context.Context, nc *nats.Conn, aggregate string, fn Querier) error {
