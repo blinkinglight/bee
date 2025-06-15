@@ -77,6 +77,7 @@ func (cp *CommandProcessor) init(ctx context.Context, cancel context.CancelFunc)
 	_, err := cp.js.AddConsumer(commandsStream, &nats.ConsumerConfig{
 		Name:           cp.durable,
 		Durable:        cp.durable,
+		FilterSubject:  cp.subject,
 		DeliverSubject: "CONSUMER_" + cp.subject,
 		AckPolicy:      nats.AckExplicitPolicy,
 	})
