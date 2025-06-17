@@ -6,6 +6,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/blinkinglight/bee/co"
 	"github.com/blinkinglight/bee/gen"
 	"github.com/nats-io/nats.go"
 	"google.golang.org/protobuf/proto"
@@ -21,17 +22,34 @@ type CommandHandler interface {
 // type CommandHandlerFunc func(ctx context.Context, m *gen.CommandEnvelope) ([]*gen.EventEnvelope, error)
 
 type CommandProcessor struct {
-	js      nats.JetStreamContext
-	nc      *nats.Conn
-	subject string
-	durable string
-	handler CommandHandler
+	js        nats.JetStreamContext
+	nc        *nats.Conn
+	aggregate string
+	subject   string
+	durable   string
+	handler   CommandHandler
 }
 
-func NewCommandProcessor(ctx context.Context, subject string, handler CommandHandler) {
+func NewCommandProcessor(ctx context.Context, handler CommandHandler, opts ...co.Options) {
+	cfg := &co.Config{}
+
+	for _, opt := range opts {
+		opt(cfg)
+	}
+
+	if cfg.Aggregate == "" {
+		panic("Aggregate name is required for command processor")
+		return
+	}
+
+	subject := fmt.Sprintf("cmds.%s", cfg.Aggregate)
+	if cfg.Subject != "" {
+		subject = cfg.Subject
+	}
+
 	nc, _ := Nats(ctx)
 	js, _ := JetStream(ctx)
-	cp := &CommandProcessor{js: js, nc: nc, subject: subject, durable: "default", handler: handler}
+	cp := &CommandProcessor{js: js, nc: nc, subject: subject, aggregate: cfg.Aggregate, durable: "default", handler: handler}
 	c, cancel := context.WithCancel(ctx)
 	go func() {
 		for {
@@ -57,16 +75,16 @@ func (cp *CommandProcessor) init(ctx context.Context, cancel context.CancelFunc)
 	})
 
 	_, err := cp.js.AddConsumer(commandsStream, &nats.ConsumerConfig{
-		Name:          cp.subject + "_" + cp.durable + "_cmd",
-		Durable:       cp.subject + "_" + cp.durable + "_cmd",
-		FilterSubject: "cmds." + cp.subject,
+		Name:          cp.aggregate + "_" + cp.durable + "_cmd",
+		Durable:       cp.aggregate + "_" + cp.durable + "_cmd",
+		FilterSubject: cp.subject,
 		AckPolicy:     nats.AckExplicitPolicy,
 	})
 	if err != nil {
 		return err
 	}
 
-	sub, err := cp.js.PullSubscribe("cmds."+cp.subject, cp.subject+"_"+cp.durable+"_cmd", nats.BindStream(commandsStream), nats.ManualAck(), nats.AckExplicit(), nats.DeliverAll())
+	sub, err := cp.js.PullSubscribe(cp.subject, cp.aggregate+"_"+cp.durable+"_cmd", nats.BindStream(commandsStream), nats.ManualAck(), nats.AckExplicit(), nats.DeliverAll())
 
 	if err != nil {
 		log.Printf("Error subscribing to commands: %v", err)
