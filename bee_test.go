@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/blinkinglight/bee"
+	"github.com/blinkinglight/bee/co"
 	"github.com/blinkinglight/bee/gen"
 	"github.com/blinkinglight/bee/ro"
 	"github.com/delaneyj/toolbelt/embeddednats"
@@ -137,7 +138,7 @@ func TestCommand(t *testing.T) {
 
 	ctx := bee.WithNats(context.Background(), nc)
 	ctx = bee.WithJetStream(ctx, js)
-	go bee.NewCommandProcessor(ctx, "users", New(js))
+	go bee.NewCommandProcessor(ctx, New(js), co.WithAggreate("users"))
 
 	// service := New(js)
 	// err = bee.Register(context.Background(), "users", service.Handle)

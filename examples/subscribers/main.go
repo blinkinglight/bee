@@ -5,6 +5,7 @@ import (
 	"runtime"
 
 	"github.com/blinkinglight/bee"
+	"github.com/blinkinglight/bee/co"
 	"github.com/blinkinglight/bee/po"
 	"github.com/blinkinglight/bee/qo"
 	"github.com/nats-io/nats.go"
@@ -28,7 +29,7 @@ func main() {
 	ctx = bee.WithNats(ctx, nc)
 	ctx = bee.WithJetStream(ctx, js)
 
-	go bee.NewCommandProcessor(ctx, "users", NewService())
+	go bee.NewCommandProcessor(ctx, NewService(), co.WithAggreate("users"))
 
 	go bee.Project(ctx, NewUserProjection(), po.WithAggreate("users"))
 
