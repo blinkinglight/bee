@@ -9,6 +9,7 @@ import (
 
 	"github.com/blinkinglight/bee"
 	"github.com/blinkinglight/bee/gen"
+	"github.com/blinkinglight/bee/ro"
 	"github.com/delaneyj/toolbelt/embeddednats"
 	"github.com/nats-io/nats-server/v2/server"
 	"github.com/nats-io/nats.go"
@@ -112,7 +113,7 @@ func TestReplay(t *testing.T) {
 		t.Fatalf("Failed to publish event: %v", err)
 	}
 	replayHandler := &MockReplayHandler{}
-	bee.Replay(ctx, "users", "*", bee.DeliverAll, replayHandler)
+	bee.Replay(ctx, replayHandler, ro.WithAggreate("users"), ro.WithAggregateID("*"))
 
 	if replayHandler.Name != "John Smith" {
 		t.Errorf("Expected name to be 'John Smith', got '%s'", replayHandler.Name)
@@ -167,7 +168,7 @@ func TestCommand(t *testing.T) {
 	time.Sleep(500 * time.Millisecond) // Wait for command processing
 
 	replayHandler := NewAggregate("123")
-	bee.Replay(ctx, "users", "*", bee.DeliverAll, replayHandler)
+	bee.Replay(ctx, replayHandler, ro.WithAggreate("users"), ro.WithAggregateID("*"))
 
 	if replayHandler.Name != "John Doe" {
 		t.Errorf("Expected name to be 'John Doe', got '%s'", replayHandler.Name)
@@ -190,7 +191,7 @@ type UserServiceTest struct {
 
 func (s UserServiceTest) Handle(ctx context.Context, m *gen.CommandEnvelope) ([]*gen.EventEnvelope, error) {
 	agg := NewAggregate(m.AggregateId)
-	bee.Replay(ctx, m.Aggregate, m.AggregateId, bee.DeliverAll, agg)
+	bee.Replay(ctx, agg, ro.WithAggreate(m.Aggregate), ro.WithAggregateID(m.AggregateId))
 	return agg.ApplyCommand(ctx, m)
 }
 

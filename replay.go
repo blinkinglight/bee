@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/blinkinglight/bee/gen"
+	"github.com/blinkinglight/bee/ro"
 	"github.com/nats-io/nats.go"
 	"google.golang.org/protobuf/proto"
 )
@@ -18,12 +19,26 @@ type ReplayHandler interface {
 	ApplyEvent(m *gen.EventEnvelope) error
 }
 
-func Replay(ctx context.Context, aggregate, id string, seq uint64, fn ReplayHandler) {
+func Replay(ctx context.Context, fn ReplayHandler, opts ...ro.Options) {
+
+	cfg := &ro.Config{
+		StartSeq: DeliverAll,
+	}
+
+	for _, opt := range opts {
+		opt(cfg)
+	}
+
+	subject := fmt.Sprintf("events.%s.%s.>", cfg.Aggregate, cfg.AggregateID)
+	if cfg.Subject != "" {
+		subject = cfg.Subject
+	}
+
 	lctx, cancel := context.WithCancel(ctx)
 	js, _ := JetStream(ctx)
 
 	oneMsg := make(chan *nats.Msg, 1)
-	ls, err := js.Subscribe(fmt.Sprintf("events.%s.%s.>", aggregate, id), func(msg *nats.Msg) {
+	ls, err := js.Subscribe(subject, func(msg *nats.Msg) {
 		oneMsg <- msg
 	}, nats.DeliverLast())
 
@@ -50,14 +65,14 @@ func Replay(ctx context.Context, aggregate, id string, seq uint64, fn ReplayHand
 
 	msgs := make(chan *nats.Msg, 128)
 	opt := nats.DeliverAll()
-	if seq > 0 {
-		opt = nats.StartSequence(seq)
+	if cfg.StartSeq > 0 {
+		opt = nats.StartSequence(cfg.StartSeq)
 	}
-	sub, err := js.Subscribe(fmt.Sprintf("events.%s.%s.>", aggregate, id), func(msg *nats.Msg) {
+	sub, err := js.Subscribe(subject, func(msg *nats.Msg) {
 		msgs <- msg
 	}, opt, nats.ManualAck())
 	if err != nil {
-		log.Printf("Replay: Error subscribing to %s.%s: %v", aggregate, id, err)
+		log.Printf("Replay: Error subscribing to %s.%s: %v", cfg.Aggregate, cfg.AggregateID, err)
 		cancel()
 		return
 	}
@@ -100,21 +115,33 @@ func Replay(ctx context.Context, aggregate, id string, seq uint64, fn ReplayHand
 	}
 }
 
-func ReplayAndSubscribe[T EventApplier](ctx context.Context, aggregate, id string, agg T) <-chan T {
+func ReplayAndSubscribe[T EventApplier](ctx context.Context, agg T, opts ...ro.Options) <-chan T {
+	cfg := &ro.Config{
+		StartSeq: DeliverAll,
+	}
+
+	for _, opt := range opts {
+		opt(cfg)
+	}
+
+	subject := fmt.Sprintf("events.%s.%s.>", cfg.Aggregate, cfg.AggregateID)
+	if cfg.Subject != "" {
+		subject = cfg.Subject
+	}
+
 	ch := make(chan T, 128)
 	msgs := make(chan *nats.Msg, 128)
 	js, _ := JetStream(ctx)
-	log.Printf("ReplayAndSubscribe: Received message for %s.%s", aggregate, id)
-	sub, err := js.Subscribe(fmt.Sprintf("events.%s.%s.>", aggregate, id), func(msg *nats.Msg) {
+	sub, err := js.Subscribe(subject, func(msg *nats.Msg) {
 		msgs <- msg
 	}, nats.ManualAck(), nats.DeliverNew())
 	if err != nil {
-		log.Printf("ReplayAndSubscribe: Error subscribing to %s.%s: %v", aggregate, id, err)
+		log.Printf("ReplayAndSubscribe: Error subscribing to %s.%s: %v", cfg.Aggregate, cfg.AggregateID, err)
 		ch <- agg
 		close(ch)
 		return ch
 	}
-	Replay(ctx, aggregate, id, DeliverAll, agg)
+	Replay(ctx, agg, opts...)
 	ch <- agg
 	go func() {
 		defer sub.Unsubscribe()

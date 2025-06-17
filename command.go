@@ -75,9 +75,12 @@ func (cp *CommandProcessor) init(ctx context.Context, cancel context.CancelFunc)
 	defer sub.Unsubscribe()
 
 	for {
+		if ctx.Err() != nil {
+			cancel()
+			return nil
+		}
 		msg, _ := sub.Fetch(1, nats.MaxWait(60*time.Second))
 		if len(msg) == 0 {
-			// log.Printf("No messages received, waiting...")
 			time.Sleep(50 * time.Millisecond)
 			continue
 		}
@@ -117,6 +120,4 @@ func (cp *CommandProcessor) init(ctx context.Context, cancel context.CancelFunc)
 			_ = msg.Ack()
 		}
 	}
-	<-ctx.Done()
-	return nil
 }

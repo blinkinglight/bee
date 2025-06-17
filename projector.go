@@ -25,23 +25,23 @@ type Projector interface {
 func Project(ctx context.Context, fn EventApplier, opts ...po.Options) error {
 
 	cfg := &po.Config{
-		AggreateID: "*",
+		AggregateID: "*",
 	}
 
 	for _, opt := range opts {
 		opt(cfg)
 	}
 
-	if cfg.Aggreate == "" {
+	if cfg.Aggregate == "" {
 		panic("aggregate is required for projection")
 	}
 
 	if cfg.DurableName == "" {
-		cfg.DurableName = cfg.Aggreate
+		cfg.DurableName = cfg.Aggregate
 	}
 
 	if cfg.Subject == "" {
-		cfg.Subject = fmt.Sprintf("events.%s.%s.>", cfg.Aggreate, cfg.AggreateID)
+		cfg.Subject = fmt.Sprintf("events.%s.%s.>", cfg.Aggregate, cfg.AggregateID)
 	}
 
 	prefix := ""
@@ -50,6 +50,16 @@ func Project(ctx context.Context, fn EventApplier, opts ...po.Options) error {
 	}
 
 	js, _ := JetStream(ctx)
+
+	js.AddStream(&nats.StreamConfig{
+		Name:      "EVENTS",
+		Subjects:  []string{"events.>"},
+		Storage:   nats.FileStorage,
+		Retention: nats.LimitsPolicy,
+		MaxAge:    0,
+		Replicas:  1,
+	})
+
 	sub, err := js.Subscribe(cfg.Subject, func(msg *nats.Msg) {
 		if msg == nil {
 			return

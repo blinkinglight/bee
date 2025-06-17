@@ -6,6 +6,7 @@ import (
 
 	"github.com/blinkinglight/bee"
 	"github.com/blinkinglight/bee/po"
+	"github.com/blinkinglight/bee/qo"
 	"github.com/nats-io/nats.go"
 )
 
@@ -24,15 +25,6 @@ func main() {
 		panic(err)
 	}
 
-	js.AddStream(&nats.StreamConfig{
-		Name:      "EVENTS",
-		Subjects:  []string{"events.>"},
-		Storage:   nats.FileStorage,
-		Retention: nats.LimitsPolicy,
-		MaxAge:    0,
-		Replicas:  1,
-	})
-
 	ctx = bee.WithNats(ctx, nc)
 	ctx = bee.WithJetStream(ctx, js)
 
@@ -40,7 +32,7 @@ func main() {
 
 	go bee.Project(ctx, NewUserProjection(), po.WithAggreate("users"))
 
-	go bee.Query(ctx, "users", NewUserProjection())
+	go bee.Query(ctx, NewUserProjection(), qo.WithAggreate("users"))
 
 	runtime.Goexit()
 }

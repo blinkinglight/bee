@@ -1,4 +1,4 @@
-package po
+package ro
 
 type Options func(*Config)
 
@@ -6,19 +6,12 @@ type Config struct {
 	Subject     string
 	Aggregate   string
 	AggregateID string
-	DurableName string
-	Prefix      string
+	StartSeq    uint64
 }
 
 func WithSubject(subject string) Options {
 	return func(cfg *Config) {
 		cfg.Subject = subject
-	}
-}
-
-func WithDurable(name string) Options {
-	return func(cfg *Config) {
-		cfg.DurableName = name
 	}
 }
 
@@ -28,14 +21,14 @@ func WithAggreate(aggregate string) Options {
 	}
 }
 
-func WithAggrateID(aggregateID string) Options {
+func WithStartSeq(seq uint64) Options {
 	return func(cfg *Config) {
-		cfg.AggregateID = aggregateID
+		cfg.StartSeq = seq
 	}
 }
 
-func WithPrefix(prefix string) Options {
+func WithAggregateID(id string) Options {
 	return func(cfg *Config) {
-		cfg.Prefix = prefix
+		cfg.AggregateID = id
 	}
 }

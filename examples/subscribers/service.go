@@ -6,6 +6,7 @@ import (
 
 	"github.com/blinkinglight/bee"
 	"github.com/blinkinglight/bee/gen"
+	"github.com/blinkinglight/bee/ro"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -19,7 +20,7 @@ type UserService struct {
 func (s UserService) Handle(ctx context.Context, m *gen.CommandEnvelope) ([]*gen.EventEnvelope, error) {
 	agg := NewAggregate(m.AggregateId)
 
-	bee.Replay(ctx, m.Aggregate, m.AggregateId, bee.DeliverAll, agg)
+	bee.Replay(ctx, agg, ro.WithAggreate(m.Aggregate), ro.WithAggregateID(m.AggregateId))
 
 	if agg.Found && m.CommandType == "create" {
 		return nil, fmt.Errorf("aggregate %s with ID %s already exists", m.Aggregate, m.AggregateId)

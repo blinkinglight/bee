@@ -5,14 +5,28 @@ import (
 	"encoding/json"
 
 	"github.com/blinkinglight/bee/gen"
+	"github.com/blinkinglight/bee/qo"
 	"github.com/nats-io/nats.go"
 	"google.golang.org/protobuf/proto"
 )
 
-func Query(ctx context.Context, aggregate string, fn Querier) error {
+func Query(ctx context.Context, fn Querier, opts ...qo.Options) error {
+	cfg := &qo.Config{
+		Aggregate: "*",
+	}
+
+	for _, opt := range opts {
+		opt(cfg)
+	}
+
+	subject := "query." + cfg.Aggregate + ".get"
+	if cfg.Subject != "" {
+		subject = cfg.Subject
+	}
+
 	nc, _ := Nats(ctx)
 
-	_, _ = nc.QueueSubscribe("query."+aggregate+".get", aggregate, func(msg *nats.Msg) {
+	_, _ = nc.QueueSubscribe(subject, cfg.Aggregate, func(msg *nats.Msg) {
 		if msg == nil {
 			return
 		}
