@@ -66,7 +66,7 @@ func (cp *CommandProcessor) init(ctx context.Context, cancel context.CancelFunc)
 		return err
 	}
 
-	sub, err := cp.js.PullSubscribe("cmds."+cp.subject, cp.subject+"_"+cp.durable+"_cmd", nats.BindStream(commandsStream), nats.ManualAck(), nats.DeliverAll())
+	sub, err := cp.js.PullSubscribe("cmds."+cp.subject, cp.subject+"_"+cp.durable+"_cmd", nats.BindStream(commandsStream), nats.ManualAck(), nats.AckExplicit(), nats.DeliverAll())
 
 	if err != nil {
 		log.Printf("Error subscribing to commands: %v", err)
@@ -75,8 +75,9 @@ func (cp *CommandProcessor) init(ctx context.Context, cancel context.CancelFunc)
 	defer sub.Unsubscribe()
 
 	for {
-		msg, _ := sub.Fetch(1, nats.MaxWait(5*time.Second))
+		msg, _ := sub.Fetch(1, nats.MaxWait(60*time.Second))
 		if len(msg) == 0 {
+			// log.Printf("No messages received, waiting...")
 			time.Sleep(50 * time.Millisecond)
 			continue
 		}

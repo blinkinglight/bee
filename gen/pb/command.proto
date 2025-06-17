@@ -17,5 +17,6 @@ message CommandEnvelope {
   bytes payload = 8;
   map<string, string> metadata = 9;
   google.protobuf.Struct extra_metadata = 10;
+  string tenant_id = 11;
 
 }

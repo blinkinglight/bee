@@ -9,21 +9,6 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-type QueryOne struct {
-	ID string `json:"id"`
-}
-
-type QueryMany struct {
-	Limit  int                      `json:"limit"`
-	Page   int                      `json:"page"`
-	Filter map[string]interface{}   `json:"filter"`
-	In     map[string][]interface{} `json:"in"`
-}
-
-type QueryAny struct {
-	Name string `json:"name"`
-}
-
 func Query(ctx context.Context, aggregate string, fn Querier) error {
 	nc, _ := Nats(ctx)
 

@@ -9,5 +9,7 @@ message QueryEnvelope {
   string query_type = 1;
   bytes payload = 2;
   google.protobuf.Struct extra_metadata = 3;
-
+  string tenant_id = 4;
+  string correlation_id = 5; 
+  string user_id = 6;
 }

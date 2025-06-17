@@ -24,7 +24,7 @@ func main() {
 
 	base, _ := strconv.Atoi(os.Args[1])
 	_ = base
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 20; i++ {
 		cmd := &gen.CommandEnvelope{
 			Aggregate:     "users",
 			AggregateId:   fmt.Sprintf("user-%d", base+i),

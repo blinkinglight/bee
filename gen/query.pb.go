@@ -27,6 +27,9 @@ type QueryEnvelope struct {
 	QueryType     string                 `protobuf:"bytes,1,opt,name=query_type,json=queryType,proto3" json:"query_type,omitempty"`
 	Payload       []byte                 `protobuf:"bytes,2,opt,name=payload,proto3" json:"payload,omitempty"`
 	ExtraMetadata *structpb.Struct       `protobuf:"bytes,3,opt,name=extra_metadata,json=extraMetadata,proto3" json:"extra_metadata,omitempty"`
+	TenantId      string                 `protobuf:"bytes,4,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
+	CorrelationId string                 `protobuf:"bytes,5,opt,name=correlation_id,json=correlationId,proto3" json:"correlation_id,omitempty"`
+	UserId        string                 `protobuf:"bytes,6,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -82,16 +85,40 @@ func (x *QueryEnvelope) GetExtraMetadata() *structpb.Struct {
 	return nil
 }
 
+func (x *QueryEnvelope) GetTenantId() string {
+	if x != nil {
+		return x.TenantId
+	}
+	return ""
+}
+
+func (x *QueryEnvelope) GetCorrelationId() string {
+	if x != nil {
+		return x.CorrelationId
+	}
+	return ""
+}
+
+func (x *QueryEnvelope) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
 var File_query_proto protoreflect.FileDescriptor
 
 const file_query_proto_rawDesc = "" +
 	"\n" +
-	"\vquery.proto\x12\x03gen\x1a\x1cgoogle/protobuf/struct.proto\"\x88\x01\n" +
+	"\vquery.proto\x12\x03gen\x1a\x1cgoogle/protobuf/struct.proto\"\xe5\x01\n" +
 	"\rQueryEnvelope\x12\x1d\n" +
 	"\n" +
 	"query_type\x18\x01 \x01(\tR\tqueryType\x12\x18\n" +
 	"\apayload\x18\x02 \x01(\fR\apayload\x12>\n" +
-	"\x0eextra_metadata\x18\x03 \x01(\v2\x17.google.protobuf.StructR\rextraMetadataB\x1bZ\x19github.com/ituoga/iot/genb\x06proto3"
+	"\x0eextra_metadata\x18\x03 \x01(\v2\x17.google.protobuf.StructR\rextraMetadata\x12\x1b\n" +
+	"\ttenant_id\x18\x04 \x01(\tR\btenantId\x12%\n" +
+	"\x0ecorrelation_id\x18\x05 \x01(\tR\rcorrelationId\x12\x17\n" +
+	"\auser_id\x18\x06 \x01(\tR\x06userIdB\x1bZ\x19github.com/ituoga/iot/genb\x06proto3"
 
 var (
 	file_query_proto_rawDescOnce sync.Once

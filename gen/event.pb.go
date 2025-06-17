@@ -35,6 +35,7 @@ type EventEnvelope struct {
 	UserId        string                 `protobuf:"bytes,8,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	Metadata      map[string]string      `protobuf:"bytes,9,rep,name=metadata,proto3" json:"metadata,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	ExtraMetadata *structpb.Struct       `protobuf:"bytes,10,opt,name=extra_metadata,json=extraMetadata,proto3" json:"extra_metadata,omitempty"`
+	TenantId      string                 `protobuf:"bytes,11,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -139,11 +140,18 @@ func (x *EventEnvelope) GetExtraMetadata() *structpb.Struct {
 	return nil
 }
 
+func (x *EventEnvelope) GetTenantId() string {
+	if x != nil {
+		return x.TenantId
+	}
+	return ""
+}
+
 var File_event_proto protoreflect.FileDescriptor
 
 const file_event_proto_rawDesc = "" +
 	"\n" +
-	"\vevent.proto\x12\x03gen\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xe2\x03\n" +
+	"\vevent.proto\x12\x03gen\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xff\x03\n" +
 	"\rEventEnvelope\x12\x19\n" +
 	"\bevent_id\x18\x01 \x01(\tR\aeventId\x12%\n" +
 	"\x0ecorrelation_id\x18\x02 \x01(\tR\rcorrelationId\x128\n" +
@@ -156,7 +164,8 @@ const file_event_proto_rawDesc = "" +
 	"\auser_id\x18\b \x01(\tR\x06userId\x12<\n" +
 	"\bmetadata\x18\t \x03(\v2 .gen.EventEnvelope.MetadataEntryR\bmetadata\x12>\n" +
 	"\x0eextra_metadata\x18\n" +
-	" \x01(\v2\x17.google.protobuf.StructR\rextraMetadata\x1a;\n" +
+	" \x01(\v2\x17.google.protobuf.StructR\rextraMetadata\x12\x1b\n" +
+	"\ttenant_id\x18\v \x01(\tR\btenantId\x1a;\n" +
 	"\rMetadataEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01B\x1bZ\x19github.com/ituoga/iot/genb\x06proto3"
