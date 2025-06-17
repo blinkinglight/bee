@@ -5,6 +5,7 @@ import (
 	"runtime"
 
 	"github.com/blinkinglight/bee"
+	"github.com/blinkinglight/bee/po"
 	"github.com/nats-io/nats.go"
 )
 
@@ -37,7 +38,7 @@ func main() {
 
 	go bee.NewCommandProcessor(ctx, "users", NewService())
 
-	go bee.Project(ctx, "instance1", "users", "*", NewUserProjection())
+	go bee.Project(ctx, NewUserProjection(), po.WithAggreate("users"))
 
 	go bee.Query(ctx, "users", NewUserProjection())
 
