@@ -36,3 +36,44 @@ router.Get("/stream/{id}", func(w http.ResponseWriter, r *http.Request) {
     }
 })
 ```
+
+and live projection aggrate: 
+
+```go
+
+type userModel struct {
+	Name    string `json:"name"`
+	Country string `json:"country"`
+}
+
+type Aggregate struct {
+	History []string
+}
+
+func (a *Aggregate) ApplyEvent(event *gen.EventEnvelope) error {
+	switch event.EventType {
+	case "created":
+		var user userModel
+		if err := json.Unmarshal(event.Payload, &user); err != nil {
+			return err
+		}
+		a.History = append(a.History, "User created: "+user.Name+" from "+user.Country)
+	case "updated":
+		var user userModel
+		if err := json.Unmarshal(event.Payload, &user); err != nil {
+			return err
+		}
+		a.History = append(a.History, "User updated: "+user.Name+" from "+user.Country)
+	case "name_changed":
+		var user userModel
+		if err := json.Unmarshal(event.Payload, &user); err != nil {
+			return err
+		}
+		a.History = append(a.History, "User name changed to: "+user.Name)
+	default:
+		return nil // Ignore other event types
+	}
+	return nil
+}
+
+```
