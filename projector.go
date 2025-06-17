@@ -13,7 +13,7 @@ type EventApplier interface {
 	ApplyEvent(event *gen.EventEnvelope) error
 }
 type Querier interface {
-	Query(query interface{}) (interface{}, error)
+	Query(query *gen.QueryEnvelope) (interface{}, error)
 }
 
 type Projector interface {
@@ -38,7 +38,7 @@ func Project(ctx context.Context, durable, aggregate, id string, fn EventApplier
 			return
 		}
 		msg.Ack()
-	}, nats.DeliverAll(), nats.ManualAck(), nats.Durable(durable), nats.BindStream("EVENTS"))
+	}, nats.DeliverAll(), nats.ManualAck(), nats.Durable("events_"+aggregate+"_"+durable), nats.BindStream("EVENTS"), nats.ConsumerName(durable))
 	if err != nil {
 		fmt.Printf("Error subscribing to events: %v\n", err)
 		return

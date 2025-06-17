@@ -85,6 +85,9 @@ func TestReplay(t *testing.T) {
 		Subjects: []string{"events.>"},
 	})
 
+	ctx := bee.WithNats(t.Context(), nc)
+	ctx = bee.WithJetStream(ctx, js)
+
 	evt1 := &gen.EventEnvelope{
 		EventType:     "created",
 		AggregateType: "users",
@@ -109,7 +112,7 @@ func TestReplay(t *testing.T) {
 		t.Fatalf("Failed to publish event: %v", err)
 	}
 	replayHandler := &MockReplayHandler{}
-	bee.Replay(t.Context(), js, "users", "*", bee.DeliverAll, replayHandler)
+	bee.Replay(ctx, "users", "*", bee.DeliverAll, replayHandler)
 
 	if replayHandler.Name != "John Smith" {
 		t.Errorf("Expected name to be 'John Smith', got '%s'", replayHandler.Name)
@@ -133,7 +136,7 @@ func TestCommand(t *testing.T) {
 
 	ctx := bee.WithNats(context.Background(), nc)
 	ctx = bee.WithJetStream(ctx, js)
-	go bee.NewCommandProcessor(ctx, "cmds.users", "users_cmds", New(js).Handle)
+	go bee.NewCommandProcessor(ctx, "users", New(js))
 
 	// service := New(js)
 	// err = bee.Register(context.Background(), "users", service.Handle)
@@ -164,7 +167,7 @@ func TestCommand(t *testing.T) {
 	time.Sleep(500 * time.Millisecond) // Wait for command processing
 
 	replayHandler := NewAggregate("123")
-	bee.Replay(t.Context(), js, "users", "*", bee.DeliverAll, replayHandler)
+	bee.Replay(ctx, "users", "*", bee.DeliverAll, replayHandler)
 
 	if replayHandler.Name != "John Doe" {
 		t.Errorf("Expected name to be 'John Doe', got '%s'", replayHandler.Name)
@@ -187,7 +190,7 @@ type UserServiceTest struct {
 
 func (s UserServiceTest) Handle(ctx context.Context, m *gen.CommandEnvelope) ([]*gen.EventEnvelope, error) {
 	agg := NewAggregate(m.AggregateId)
-	bee.Replay(ctx, s.js, m.Aggregate, m.AggregateId, bee.DeliverAll, agg)
+	bee.Replay(ctx, m.Aggregate, m.AggregateId, bee.DeliverAll, agg)
 	return agg.ApplyCommand(ctx, m)
 }
 

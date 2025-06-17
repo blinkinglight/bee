@@ -14,20 +14,24 @@ import (
 const commandsSubject = "cmds.>"
 const commandsStream = "COMMANDS"
 
-type CommandHandlerFunc func(ctx context.Context, m *gen.CommandEnvelope) ([]*gen.EventEnvelope, error)
+type CommandHandler interface {
+	Handle(ctx context.Context, m *gen.CommandEnvelope) ([]*gen.EventEnvelope, error)
+}
+
+// type CommandHandlerFunc func(ctx context.Context, m *gen.CommandEnvelope) ([]*gen.EventEnvelope, error)
 
 type CommandProcessor struct {
 	js      nats.JetStreamContext
 	nc      *nats.Conn
 	subject string
 	durable string
-	handler CommandHandlerFunc
+	handler CommandHandler
 }
 
-func NewCommandProcessor(ctx context.Context, subject string, durable string, handler CommandHandlerFunc) {
+func NewCommandProcessor(ctx context.Context, subject string, handler CommandHandler) {
 	nc, _ := Nats(ctx)
 	js, _ := JetStream(ctx)
-	cp := &CommandProcessor{js: js, nc: nc, subject: subject, durable: durable, handler: handler}
+	cp := &CommandProcessor{js: js, nc: nc, subject: subject, durable: "default", handler: handler}
 	c, cancel := context.WithCancel(ctx)
 	go func() {
 		for {
@@ -53,15 +57,16 @@ func (cp *CommandProcessor) init(ctx context.Context, cancel context.CancelFunc)
 	})
 
 	_, err := cp.js.AddConsumer(commandsStream, &nats.ConsumerConfig{
-		Durable:       cp.durable,
-		FilterSubject: cp.subject,
+		Name:          cp.subject + "_" + cp.durable + "_cmd",
+		Durable:       cp.subject + "_" + cp.durable + "_cmd",
+		FilterSubject: "cmds." + cp.subject,
 		AckPolicy:     nats.AckExplicitPolicy,
 	})
 	if err != nil {
 		return err
 	}
 
-	sub, err := cp.js.PullSubscribe(cp.subject, cp.durable, nats.BindStream(commandsStream), nats.ManualAck())
+	sub, err := cp.js.PullSubscribe("cmds."+cp.subject, cp.subject+"_"+cp.durable+"_cmd", nats.BindStream(commandsStream), nats.ManualAck(), nats.DeliverAll())
 
 	if err != nil {
 		log.Printf("Error subscribing to commands: %v", err)
@@ -87,7 +92,7 @@ func (cp *CommandProcessor) init(ctx context.Context, cancel context.CancelFunc)
 			errorNotificationSubject := fmt.Sprintf("notifications.%s.error", cmd.CorrelationId)
 			successNotificationSubject := fmt.Sprintf("notifications.%s.success", cmd.CorrelationId)
 
-			events, err := cp.handler(context.Background(), &cmd)
+			events, err := cp.handler.Handle(ctx, &cmd)
 			if err != nil {
 				log.Printf("Error handling command: %v", err)
 				if cmd.CorrelationId != "" {

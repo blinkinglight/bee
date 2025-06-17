@@ -49,6 +49,9 @@ func (u *UserAggregate) ApplyCommand(_ context.Context, c *gen.CommandEnvelope) 
 	if c.AggregateId != u.ID {
 		return nil, fmt.Errorf("aggregate ID mismatch")
 	}
+
+	_ = c.ExtraMetadata.AsMap()
+
 	var event *gen.EventEnvelope = &gen.EventEnvelope{AggregateId: u.ID}
 	event.AggregateType = "users"
 	switch c.CommandType {

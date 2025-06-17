@@ -16,8 +16,9 @@ type ReplayHandler interface {
 	ApplyEvent(m *gen.EventEnvelope) error
 }
 
-func Replay(ctx context.Context, js nats.JetStreamContext, aggregate, id string, seq uint64, fn ReplayHandler) {
+func Replay(ctx context.Context, aggregate, id string, seq uint64, fn ReplayHandler) {
 	lctx, cancel := context.WithCancel(ctx)
+	js, _ := JetStream(ctx)
 	ls, err := js.SubscribeSync(fmt.Sprintf("events.%s.%s.>", aggregate, id), nats.DeliverLast())
 	if err != nil {
 		cancel()

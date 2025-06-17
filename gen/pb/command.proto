@@ -4,7 +4,7 @@ package gen;
 option go_package = "github.com/ituoga/iot/gen"; // sugeneruos tiesiai į gen/
 
 import "google/protobuf/timestamp.proto";
-
+import "google/protobuf/struct.proto";
 
 message CommandEnvelope {
   string command_id = 1;
@@ -16,5 +16,6 @@ message CommandEnvelope {
   string command_type = 7;
   bytes payload = 8;
   map<string, string> metadata = 9;
+  google.protobuf.Struct extra_metadata = 10;
 
 }

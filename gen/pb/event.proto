@@ -3,6 +3,7 @@ syntax = "proto3";
 package gen;
 option go_package = "github.com/ituoga/iot/gen"; // sugeneruos tiesiai į gen/
 
+import "google/protobuf/struct.proto";
 
 import "google/protobuf/timestamp.proto";
 
@@ -16,4 +17,5 @@ message EventEnvelope {
   bytes payload = 7;
   string user_id = 8;
   map<string, string> metadata = 9;
+  google.protobuf.Struct extra_metadata = 10;
 }

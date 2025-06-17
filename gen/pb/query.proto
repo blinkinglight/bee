@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package gen;
+option go_package = "github.com/ituoga/iot/gen"; // sugeneruos tiesiai į gen/
+
+import "google/protobuf/struct.proto";
+
+message QueryEnvelope {
+  string query_type = 1;
+  bytes payload = 2;
+  google.protobuf.Struct extra_metadata = 3;
+
+}

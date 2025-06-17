@@ -35,9 +35,11 @@ func main() {
 	ctx = bee.WithNats(ctx, nc)
 	ctx = bee.WithJetStream(ctx, js)
 
-	go bee.NewCommandProcessor(ctx, "cmds.users", "users_cmd", NewService(js).Handle)
+	go bee.NewCommandProcessor(ctx, "users", NewService())
 
-	runProjection(js)
+	go bee.Project(ctx, "instance1", "users", "*", NewUserProjection())
+
+	go bee.Query(ctx, "users", NewUserProjection())
 
 	runtime.Goexit()
 }

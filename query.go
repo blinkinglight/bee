@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/json"
 
+	"github.com/blinkinglight/bee/gen"
 	"github.com/nats-io/nats.go"
+	"google.golang.org/protobuf/proto"
 )
 
 type QueryOne struct {
@@ -24,13 +26,15 @@ type QueryAny struct {
 
 func Query(ctx context.Context, aggregate string, fn Querier) error {
 	nc, _ := Nats(ctx)
-	_, _ = nc.Subscribe("query."+aggregate+".get", func(msg *nats.Msg) {
+
+	_, _ = nc.QueueSubscribe("query."+aggregate+".get", aggregate, func(msg *nats.Msg) {
 		if msg == nil {
 			return
 		}
 
-		query := &QueryOne{}
-		if err := json.Unmarshal(msg.Data, query); err != nil {
+		query := &gen.QueryEnvelope{}
+		if err := proto.Unmarshal(msg.Data, query); err != nil {
+			msg.Respond([]byte(err.Error()))
 			return
 		}
 
@@ -47,52 +51,7 @@ func Query(ctx context.Context, aggregate string, fn Querier) error {
 		msg.Respond(response)
 
 	})
-	_, _ = nc.Subscribe("query."+aggregate+".list", func(msg *nats.Msg) {
-		if msg == nil {
-			return
-		}
 
-		query := &QueryMany{}
-		if err := json.Unmarshal(msg.Data, query); err != nil {
-			return
-		}
-
-		result, err := fn.Query(query)
-		if err != nil {
-			msg.Respond([]byte(err.Error()))
-			return
-		}
-		response, err := json.Marshal(result)
-		if err != nil {
-			msg.Respond([]byte(err.Error()))
-			return
-		}
-		msg.Respond(response)
-
-	})
-	_, _ = nc.Subscribe("query."+aggregate+".any", func(msg *nats.Msg) {
-		if msg == nil {
-			return
-		}
-
-		query := &QueryAny{}
-		if err := json.Unmarshal(msg.Data, query); err != nil {
-			return
-		}
-
-		result, err := fn.Query(query)
-		if err != nil {
-			msg.Respond([]byte(err.Error()))
-			return
-		}
-		response, err := json.Marshal(result)
-		if err != nil {
-			msg.Respond([]byte(err.Error()))
-			return
-		}
-		msg.Respond(response)
-
-	})
 	<-ctx.Done()
 	return nil
 }

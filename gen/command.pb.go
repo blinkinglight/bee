@@ -9,6 +9,7 @@ package gen
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	structpb "google.golang.org/protobuf/types/known/structpb"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
 	sync "sync"
@@ -33,6 +34,7 @@ type CommandEnvelope struct {
 	CommandType   string                 `protobuf:"bytes,7,opt,name=command_type,json=commandType,proto3" json:"command_type,omitempty"`
 	Payload       []byte                 `protobuf:"bytes,8,opt,name=payload,proto3" json:"payload,omitempty"`
 	Metadata      map[string]string      `protobuf:"bytes,9,rep,name=metadata,proto3" json:"metadata,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	ExtraMetadata *structpb.Struct       `protobuf:"bytes,10,opt,name=extra_metadata,json=extraMetadata,proto3" json:"extra_metadata,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -130,11 +132,18 @@ func (x *CommandEnvelope) GetMetadata() map[string]string {
 	return nil
 }
 
+func (x *CommandEnvelope) GetExtraMetadata() *structpb.Struct {
+	if x != nil {
+		return x.ExtraMetadata
+	}
+	return nil
+}
+
 var File_command_proto protoreflect.FileDescriptor
 
 const file_command_proto_rawDesc = "" +
 	"\n" +
-	"\rcommand.proto\x12\x03gen\x1a\x1fgoogle/protobuf/timestamp.proto\"\xa5\x03\n" +
+	"\rcommand.proto\x12\x03gen\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1cgoogle/protobuf/struct.proto\"\xe5\x03\n" +
 	"\x0fCommandEnvelope\x12\x1d\n" +
 	"\n" +
 	"command_id\x18\x01 \x01(\tR\tcommandId\x12%\n" +
@@ -145,7 +154,9 @@ const file_command_proto_rawDesc = "" +
 	"\faggregate_id\x18\x06 \x01(\tR\vaggregateId\x12!\n" +
 	"\fcommand_type\x18\a \x01(\tR\vcommandType\x12\x18\n" +
 	"\apayload\x18\b \x01(\fR\apayload\x12>\n" +
-	"\bmetadata\x18\t \x03(\v2\".gen.CommandEnvelope.MetadataEntryR\bmetadata\x1a;\n" +
+	"\bmetadata\x18\t \x03(\v2\".gen.CommandEnvelope.MetadataEntryR\bmetadata\x12>\n" +
+	"\x0eextra_metadata\x18\n" +
+	" \x01(\v2\x17.google.protobuf.StructR\rextraMetadata\x1a;\n" +
 	"\rMetadataEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01B\x1bZ\x19github.com/ituoga/iot/genb\x06proto3"
@@ -167,15 +178,17 @@ var file_command_proto_goTypes = []any{
 	(*CommandEnvelope)(nil),       // 0: gen.CommandEnvelope
 	nil,                           // 1: gen.CommandEnvelope.MetadataEntry
 	(*timestamppb.Timestamp)(nil), // 2: google.protobuf.Timestamp
+	(*structpb.Struct)(nil),       // 3: google.protobuf.Struct
 }
 var file_command_proto_depIdxs = []int32{
 	2, // 0: gen.CommandEnvelope.timestamp:type_name -> google.protobuf.Timestamp
 	1, // 1: gen.CommandEnvelope.metadata:type_name -> gen.CommandEnvelope.MetadataEntry
-	2, // [2:2] is the sub-list for method output_type
-	2, // [2:2] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	3, // 2: gen.CommandEnvelope.extra_metadata:type_name -> google.protobuf.Struct
+	3, // [3:3] is the sub-list for method output_type
+	3, // [3:3] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	3, // [3:3] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_command_proto_init() }
