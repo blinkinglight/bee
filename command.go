@@ -39,7 +39,6 @@ func NewCommandProcessor(ctx context.Context, handler CommandHandler, opts ...co
 
 	if cfg.Aggregate == "" {
 		panic("Aggregate name is required for command processor")
-		return
 	}
 
 	subject := fmt.Sprintf("cmds.%s", cfg.Aggregate)
