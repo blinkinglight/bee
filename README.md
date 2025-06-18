@@ -61,40 +61,26 @@ router.Get("/stream/{id}", func(w http.ResponseWriter, r *http.Request) {
 and live projection aggrate: 
 
 ```go
-
-type userModel struct {
-	Name    string `json:"name"`
-	Country string `json:"country"`
-}
-
 type Aggregate struct {
 	History []string
 }
 
-func (a *Aggregate) ApplyEvent(event *gen.EventEnvelope) error {
-	switch event.EventType {
-	case "created":
-		var user userModel
-		if err := json.Unmarshal(event.Payload, &user); err != nil {
-			return err
-		}
-		a.History = append(a.History, "User created: "+user.Name+" from "+user.Country)
-	case "updated":
-		var user userModel
-		if err := json.Unmarshal(event.Payload, &user); err != nil {
-			return err
-		}
-		a.History = append(a.History, "User updated: "+user.Name+" from "+user.Country)
-	case "name_changed":
-		var user userModel
-		if err := json.Unmarshal(event.Payload, &user); err != nil {
-			return err
-		}
-		a.History = append(a.History, "User name changed to: "+user.Name)
+func (a *Aggregate) ApplyEvent(e *gen.EventEnvelope) error {
+	event, err := bee.UnmarshalEvent(e)
+	if err != nil {
+		return fmt.Errorf("unmarshal event: %w", err)
+	}
+	switch event := event.(type) {
+	case *users.UserCreated:
+		a.History = append(a.History, "User created: "+event.Name+" from "+event.Country)
+	case *users.UserUpdated:
+		a.History = append(a.History, "User updated: "+event.Name+" from "+event.Country)
+	case *users.UserNameChanged:
+		a.History = append(a.History, "User name changed to: "+event.Name)
 	default:
+		log.Printf("unknown event type: %T", event)
 		return nil // Ignore other event types
 	}
 	return nil
 }
-
 ```
