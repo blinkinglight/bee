@@ -2,7 +2,6 @@ package bee_test
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"testing"
 	"time"
@@ -17,9 +16,22 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-type UserEvent struct {
+func init() {
+	bee.Register[UserCreatedEvent]("users", "created")
+	bee.Register[UserUpdatedEvent]("users", "updated")
+	bee.Register[UserDeletedEvent]("users", "deleted")
+}
+
+type UserCreatedEvent struct {
 	Name    string `json:"name"`
 	Country string `json:"country"`
+}
+
+type UserUpdatedEvent struct {
+	Name    string `json:"name"`
+	Country string `json:"country"`
+}
+type UserDeletedEvent struct {
 }
 
 type MockReplayHandler struct {
@@ -27,16 +39,18 @@ type MockReplayHandler struct {
 	Country string
 }
 
-func (m *MockReplayHandler) ApplyEvent(event *gen.EventEnvelope) error {
-	var tmp UserEvent
-	json.Unmarshal(event.GetPayload(), &tmp)
-	switch event.EventType {
-	case "user.created":
-		m.Name = tmp.Name
-		m.Country = tmp.Country
-	case "user.updated":
-		m.Name = tmp.Name
-		m.Country = tmp.Country
+func (m *MockReplayHandler) ApplyEvent(e *gen.EventEnvelope) error {
+	event, err := bee.UnmarshalEvent(e)
+	if err != nil {
+		return fmt.Errorf("failed to unmarshal event: %w", err)
+	}
+	switch event := event.(type) {
+	case *UserCreatedEvent:
+		m.Name = event.Name
+		m.Country = event.Country
+	case *UserUpdatedEvent:
+		m.Name = event.Name
+		m.Country = event.Country
 	default:
 		return nil
 	}
@@ -214,18 +228,19 @@ func NewAggregate(id string) *UserAggregateTest {
 }
 
 func (u *UserAggregateTest) ApplyEvent(e *gen.EventEnvelope) error {
-	// log.Printf("Applying event: %s for aggregate ID: %s", e.EventType, u.ID)
-	switch e.EventType {
-	case "created":
-		data, _ := bee.Unmarshal[User](e.Payload)
-		u.Name = data.Name
-		u.Country = data.Country
+	event, err := bee.UnmarshalEvent(e)
+	if err != nil {
+		return fmt.Errorf("failed to unmarshal event: %w", err)
+	}
+	switch event := event.(type) {
+	case *UserCreatedEvent:
+		u.Name = event.Name
+		u.Country = event.Country
 		u.Deleted = false
-	case "updated":
-		data, _ := bee.Unmarshal[User](e.Payload)
-		u.Country = data.Country
-		u.Name = data.Name
-	case "deleted":
+	case *UserUpdatedEvent:
+		u.Country = event.Country
+		u.Name = event.Name
+	case *UserDeletedEvent:
 		u.Deleted = true
 	}
 	return nil
