@@ -33,7 +33,7 @@ func Replay(ctx context.Context, fn ReplayHandler, opts ...ro.Options) {
 
 	subject := fmt.Sprintf("events.%s.%s.>", cfg.Aggregate, cfg.AggregateID)
 	if len(cfg.Parents) > 0 {
-		cfg.Subject = fmt.Sprintf("events.%s.>", strings.Join(cfg.Parents, "."))
+		cfg.Subject = fmt.Sprintf("events.%s.%s.%s.>", strings.Join(cfg.Parents, "."), cfg.Aggregate, cfg.AggregateID)
 	}
 
 	if cfg.Subject != "" {

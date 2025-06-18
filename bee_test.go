@@ -21,6 +21,8 @@ func init() {
 	bee.RegisterEvent[UserUpdatedEvent]("users", "updated")
 	bee.RegisterEvent[UserDeletedEvent]("users", "deleted")
 
+	bee.RegisterEvent[TicketCreatedEvent]("tickets", "created")
+
 	bee.RegisterCommand[CreateUserCommand]("users", "create")
 	bee.RegisterCommand[UpdateUserCommand]("users", "update")
 	bee.RegisterCommand[DeleteUserCommand]("users", "delete")
@@ -208,6 +210,44 @@ func TestCommand(t *testing.T) {
 		t.Errorf("Expected country to be 'Canada', got '%s'", replayHandler.Country)
 	}
 
+	evt := &gen.EventEnvelope{
+		EventType:     "created",
+		AggregateType: "tickets",
+		AggregateId:   "1",
+		Payload:       []byte(`{"name": "Project 1", "description": "This is a test project"}`),
+		Parents:       []*gen.ParentRef{{AggregateType: "tickets", AggregateId: "1"}},
+	}
+	b, _ := proto.Marshal(evt)
+	js.Publish("events.projects.1.tickets.1.created", b)
+
+	var projectAgg = &TicketsAggregate{}
+	bee.Replay(ctx, projectAgg, ro.WithAggreate("tickets"), ro.WithAggregateID("1"), ro.WithParent("projects", "1"))
+	if len(projectAgg.List) == 0 {
+		t.Errorf("Expected tickets list to contain at least one item, got %v", projectAgg.List)
+	}
+	if projectAgg.List[0] != "Project 1" {
+		t.Errorf("Expected tickets list to contain 'Project 1', got %v", projectAgg.List)
+	}
+}
+
+type TicketCreatedEvent struct {
+	Name string `json:"name"`
+}
+
+type TicketsAggregate struct {
+	List []string
+}
+
+func (t *TicketsAggregate) ApplyEvent(e *gen.EventEnvelope) error {
+	event, err := bee.UnmarshalEvent(e)
+	if err != nil {
+		return fmt.Errorf("failed to unmarshal event: %w", err)
+	}
+	switch event := event.(type) {
+	case *TicketCreatedEvent:
+		t.List = append(t.List, event.Name)
+	}
+	return nil
 }
 
 func New(js nats.JetStreamContext) *UserServiceTest {
