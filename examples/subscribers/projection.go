@@ -14,19 +14,20 @@ func NewUserProjection() *UserProjection {
 type UserProjection struct {
 }
 
-func (up UserProjection) ApplyEvent(event *gen.EventEnvelope) error {
-	log.Printf("got event on subject %s %s %s", event.AggregateType, event.AggregateId, event.Payload)
-	switch event.EventType {
-	case "created":
-		user, _ := bee.Unmarshal[User](event.Payload)
-		println("User created:", user.Name, "from", user.Country)
-	case "updated":
-		user, _ := bee.Unmarshal[User](event.Payload)
-		println("User updated:", user.Name, "from", user.Country)
-	case "deleted":
-		println("User deleted with ID:", event.AggregateId)
+func (up UserProjection) ApplyEvent(e *gen.EventEnvelope) error {
+	event, err := bee.UnmarshalEvent(e)
+	if err != nil {
+		log.Printf("error unmarshalling event: %v", err)
+	}
+	switch event := event.(type) {
+	case *UserCreated:
+		println("User created:", event.Name, "from", event.Country)
+	case *UserUpdated:
+		println("User updated:", event.Name, "from", event.Country)
+	case *UserDeleted:
+		println("User deleted with ID:", e.AggregateId)
 	default:
-		println("Unknown event type:", event.EventType)
+		println("Unknown event type:", e.EventType)
 	}
 	return nil
 }

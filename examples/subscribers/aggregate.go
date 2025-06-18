@@ -29,17 +29,21 @@ func NewAggregate(id string) *UserAggregate {
 
 func (u *UserAggregate) ApplyEvent(e *gen.EventEnvelope) error {
 	u.Found = true
-	switch e.EventType {
-	case "created":
-		data, _ := bee.Unmarshal[User](e.Payload)
-		u.Name = data.Name
-		u.Country = data.Country
+
+	event, err := bee.UnmarshalEvent(e)
+	if err != nil {
+		return fmt.Errorf("failed to unmarshal event: %w", err)
+	}
+
+	switch event := event.(type) {
+	case *UserCreated:
+		u.Name = event.Name
+		u.Country = event.Country
 		u.Deleted = false
-	case "updated":
-		data, _ := bee.Unmarshal[User](e.Payload)
-		u.Country = data.Country
-		u.Name = data.Name
-	case "deleted":
+	case *UserUpdated:
+		u.Country = event.Country
+		u.Name = event.Name
+	case *UserDeleted:
 		u.Deleted = true
 	}
 	return nil
@@ -54,17 +58,23 @@ func (u *UserAggregate) ApplyCommand(_ context.Context, c *gen.CommandEnvelope) 
 
 	var event *gen.EventEnvelope = &gen.EventEnvelope{AggregateId: u.ID}
 	event.AggregateType = "users"
-	switch c.CommandType {
-	case "create":
+
+	command, err := bee.UnmarshalCommand(c)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal command: %w", err)
+	}
+
+	switch command.(type) {
+	case *CreateUserCommand:
 		event.EventType = "created"
 		event.Payload = c.Payload
-	case "update":
+	case *UpdateUserCommand:
 		if u.Deleted {
 			return nil, fmt.Errorf("cannot update deleted user")
 		}
 		event.EventType = "updated"
 		event.Payload = c.Payload
-	case "delete":
+	case *DeleteUserCommand:
 		if u.Deleted {
 			return nil, fmt.Errorf("user already deleted")
 		}
