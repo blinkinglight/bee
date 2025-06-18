@@ -24,6 +24,11 @@ go bee.Project(ctx, NewUserProjection(), po.WithAggreate("users"))
 go bee.Query(ctx, NewUserProjection(), qo.WithAggreate("users"))
 ```
 
+```go
+agg := NewAggregate(m.AggregateId)
+bee.Replay(ctx, agg, ro.WithAggreate(m.Aggregate), ro.WithAggregateID(m.AggregateId))
+```
+
 tiny example of live projectios: 
 
 ```go 
