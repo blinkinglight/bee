@@ -13,6 +13,10 @@ and
 
 `go run ./examples/publishers`
 
+also 
+
+`go run ./examples/query`
+
 
 usage: 
 
