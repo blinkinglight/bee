@@ -14,6 +14,16 @@ and
 `go run ./examples/publishers`
 
 
+usage: 
+
+```go
+ctx = bee.WithNats(ctx, nc)
+ctx = bee.WithJetStream(ctx, js)
+go bee.NewCommandProcessor(ctx, NewService(), co.WithAggreate("users"))
+go bee.Project(ctx, NewUserProjection(), po.WithAggreate("users"))
+go bee.Query(ctx, NewUserProjection(), qo.WithAggreate("users"))
+```
+
 tiny example of live projectios: 
 
 ```go 
