@@ -17,9 +17,13 @@ import (
 )
 
 func init() {
-	bee.Register[UserCreatedEvent]("users", "created")
-	bee.Register[UserUpdatedEvent]("users", "updated")
-	bee.Register[UserDeletedEvent]("users", "deleted")
+	bee.RegisterEvent[UserCreatedEvent]("users", "created")
+	bee.RegisterEvent[UserUpdatedEvent]("users", "updated")
+	bee.RegisterEvent[UserDeletedEvent]("users", "deleted")
+
+	bee.RegisterCommand[CreateUserCommand]("users", "create")
+	bee.RegisterCommand[UpdateUserCommand]("users", "update")
+	bee.RegisterCommand[DeleteUserCommand]("users", "delete")
 }
 
 type UserCreatedEvent struct {
@@ -32,6 +36,18 @@ type UserUpdatedEvent struct {
 	Country string `json:"country"`
 }
 type UserDeletedEvent struct {
+}
+
+type CreateUserCommand struct {
+	Name    string `json:"name"`
+	Country string `json:"country"`
+}
+
+type UpdateUserCommand struct {
+	Name    string `json:"name"`
+	Country string `json:"country"`
+}
+type DeleteUserCommand struct {
 }
 
 type MockReplayHandler struct {
@@ -252,17 +268,23 @@ func (u *UserAggregateTest) ApplyCommand(_ context.Context, c *gen.CommandEnvelo
 	}
 	var event *gen.EventEnvelope = &gen.EventEnvelope{AggregateId: u.ID}
 	event.AggregateType = "users"
-	switch c.CommandType {
-	case "create":
+
+	command, err := bee.UnmarshalCommand(c)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal command: %w", err)
+	}
+
+	switch command.(type) {
+	case *CreateUserCommand:
 		event.EventType = "created"
 		event.Payload = c.Payload
-	case "update":
+	case *UpdateUserCommand:
 		if u.Deleted {
 			return nil, fmt.Errorf("cannot update deleted user")
 		}
 		event.EventType = "updated"
 		event.Payload = c.Payload
-	case "delete":
+	case *DeleteUserCommand:
 		if u.Deleted {
 			return nil, fmt.Errorf("user already deleted")
 		}
