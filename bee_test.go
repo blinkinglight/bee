@@ -215,7 +215,7 @@ func TestCommand(t *testing.T) {
 		AggregateType: "tickets",
 		AggregateId:   "1",
 		Payload:       []byte(`{"name": "Project 1", "description": "This is a test project"}`),
-		Parents:       []*gen.ParentRef{{AggregateType: "tickets", AggregateId: "1"}},
+		Parents:       []*gen.ParentRef{{AggregateType: "projects", AggregateId: "1"}},
 	}
 	b, _ := proto.Marshal(evt)
 	js.Publish("events.projects.1.tickets.1.created", b)
