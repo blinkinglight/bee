@@ -19,4 +19,11 @@ message EventEnvelope {
   map<string, string> metadata = 9;
   google.protobuf.Struct extra_metadata = 10;
   string tenant_id = 11;
+  repeated ParentRef parents = 12;
+  
+}
+
+message ParentRef {
+  string aggregate_type = 1;
+  string aggregate_id = 2;
 }

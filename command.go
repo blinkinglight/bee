@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/blinkinglight/bee/co"
@@ -28,6 +29,7 @@ type CommandProcessor struct {
 	subject   string
 	durable   string
 	handler   CommandHandler
+	cfg       *co.Config
 }
 
 func Command(ctx context.Context, handler CommandHandler, opts ...co.Options) {
@@ -48,7 +50,7 @@ func Command(ctx context.Context, handler CommandHandler, opts ...co.Options) {
 
 	nc, _ := Nats(ctx)
 	js, _ := JetStream(ctx)
-	cp := &CommandProcessor{js: js, nc: nc, subject: subject, aggregate: cfg.Aggregate, durable: "default", handler: handler}
+	cp := &CommandProcessor{js: js, nc: nc, subject: subject, aggregate: cfg.Aggregate, durable: "default", handler: handler, cfg: cfg}
 	c, cancel := context.WithCancel(ctx)
 	go func() {
 		for {
@@ -125,6 +127,14 @@ func (cp *CommandProcessor) init(ctx context.Context, cancel context.CancelFunc)
 
 			for _, event := range events {
 				eventSubject := fmt.Sprintf("events.%s.%s.%s", event.AggregateType, event.AggregateId, event.EventType)
+				if len(event.Parents) > 0 {
+					var parents []string
+					for _, parent := range event.Parents {
+						parents = append(parents, fmt.Sprintf("%s.%s", parent.AggregateType, parent.AggregateId))
+					}
+					eventSubject = fmt.Sprintf("events.%s.%s.%s", strings.Join(parents, "."), event.AggregateId, event.EventType)
+				}
+
 				b, _ := proto.Marshal(event)
 				if _, err := cp.js.Publish(eventSubject, b); err != nil {
 					log.Printf("Error publishing event %v", err)
