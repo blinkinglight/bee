@@ -23,6 +23,7 @@ func Replay(ctx context.Context, fn ReplayHandler, opts ...ro.Options) {
 
 	cfg := &ro.Config{
 		StartSeq: DeliverAll,
+		Timeout:  50 * time.Millisecond,
 	}
 
 	for _, opt := range opts {
@@ -50,7 +51,7 @@ func Replay(ctx context.Context, fn ReplayHandler, opts ...ro.Options) {
 		cancel()
 		return
 	}
-	c := time.NewTimer(50 * time.Millisecond)
+	c := time.NewTimer(cfg.Timeout)
 	var lmsg *nats.Msg
 	select {
 	case <-c.C:
