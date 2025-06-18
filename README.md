@@ -23,7 +23,7 @@ usage:
 ```go
 ctx = bee.WithNats(ctx, nc)
 ctx = bee.WithJetStream(ctx, js)
-go bee.NewCommandProcessor(ctx, NewService(), co.WithAggreate("users"))
+go bee.Command(ctx, NewService(), co.WithAggreate("users"))
 go bee.Project(ctx, NewUserProjection(), po.WithAggreate("users"))
 go bee.Query(ctx, NewUserProjection(), qo.WithAggreate("users"))
 ```

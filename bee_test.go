@@ -168,7 +168,7 @@ func TestCommand(t *testing.T) {
 
 	ctx := bee.WithNats(context.Background(), nc)
 	ctx = bee.WithJetStream(ctx, js)
-	go bee.NewCommandProcessor(ctx, New(js), co.WithAggreate("users"))
+	go bee.Command(ctx, New(js), co.WithAggreate("users"))
 
 	// service := New(js)
 	// err = bee.Register(context.Background(), "users", service.Handle)

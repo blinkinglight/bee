@@ -30,7 +30,7 @@ type CommandProcessor struct {
 	handler   CommandHandler
 }
 
-func NewCommandProcessor(ctx context.Context, handler CommandHandler, opts ...co.Options) {
+func Command(ctx context.Context, handler CommandHandler, opts ...co.Options) {
 	cfg := &co.Config{}
 
 	for _, opt := range opts {
