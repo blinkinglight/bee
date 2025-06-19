@@ -16,6 +16,7 @@ Bee is a minimal Go library for implementing CQRS & Event-Sourcing using NATS Je
 	- [Interfaces](#interfaces)
 	- [Functions](#functions)
 	- [Options](#options)
+  - [Use cases](#typical-use-cases)
   - [Usage](#usage)
   - [Example](#example)
 	- [Prebuild examples](#prebuild-examples)
@@ -112,6 +113,17 @@ func WithTimeout(timeout time.Duration) Options
 ```
 
 
+## Typical Use Cases
+
+Bee is great for small, event-centric scenarios:
+
+- Task-Oriented Microservices: Independent scaling of read/write sides.
+- Audit Trails & Ledgers: Immutable event history for compliance.
+- Sagas & Workflows: Event-driven state transitions.
+- Edge/IoT Deployments: Compact deployment on resource-limited devices.
+- Real-Time Game States: Fast catch-up of player states.
+- SaaS On-Prem Plugins: Easy local deployment without infrastructure complexity.
+- Ad-Hoc Analytics: Quickly spin up event projections.
 
 ## Usage: 
 
