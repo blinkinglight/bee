@@ -2,9 +2,6 @@
 
 ## experiment 
 
-requires "https://buf.build/docs/" and `go install google.golang.org/protobuf/cmd/protoc-gen-go@latest`
-
-
 examples:
 
 `go run ./examples/subscribers`
@@ -27,6 +24,7 @@ also
 	- [Options](#options)
   - [Usage](#usage)
   - [Example](#example)
+  - [Developing](#developing)
 ## Getting Started
 
 ### Installing 
@@ -175,3 +173,9 @@ func (a *Aggregate) ApplyEvent(e *gen.EventEnvelope) error {
 	return nil
 }
 ```
+
+## Developing
+
+to work with this package you need 2 apps:
+
+`https://buf.build/docs/` and `go install google.golang.org/protobuf/cmd/protoc-gen-go@latest`
