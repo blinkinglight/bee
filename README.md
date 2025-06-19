@@ -1,6 +1,12 @@
 # bee - eventsourcing on nats.io
 
-## experiment 
+Bee is a minimal Go library for implementing CQRS & Event-Sourcing using NATS JetStream as the transport and persistence layer. It offers clear abstractions with minimal dependencies and overhead.
+
+## Why Bee?
+- Minimal Infrastructure: Leverages your existing NATS JetStream.
+- Type-Safe: Commands and events are protobuf-based.
+- Fast Replay: Efficiently rebuild aggregate states from event streams.
+- Small Footprint: Less than 1500 lines of simple, maintainable Go.
 
 ## Table of Contents
 
@@ -13,7 +19,9 @@
   - [Usage](#usage)
   - [Example](#example)
 	- [Prebuild examples](#prebuild-examples)
+  - [Roadmap](#roadmap)
   - [Developing](#developing)
+  - [License](#license)
 ## Getting Started
 
 ### Installing 
@@ -192,3 +200,19 @@ also
 to work with this package you need 2 apps:
 
 `https://buf.build/docs/` and `go install google.golang.org/protobuf/cmd/protoc-gen-go@latest`
+
+
+## Roadmap
+
+| Version | Planned Features                                     |
+|---------|------------------------------------------------------|
+| v0.3    | Snapshots						                     |
+| v1.0    | Stable API, full pkg.go.dev docs                     |
+
+## Development & Contribution
+
+Pull requests are welcome!
+
+## License
+
+Apache-2.0 © 2025 BlinkLight
