@@ -18,7 +18,98 @@ also
 `go run ./examples/query`
 
 
-usage: 
+## Table of Contents
+
+  - [Getting Started](#getting-started)
+    - [Installing](#installing)
+	- [Interfaces](#interfaces)
+	- [Functions](#functions)
+	- [Options](#options)
+  - [Usage](#usage)
+  - [Example](#example)
+## Getting Started
+
+### Installing 
+
+To start using `bee`, install Go and run `go get`:
+```sh
+go get github.com/blinkinglight/bee
+```
+
+This will retrieve the library and update your `go.mod` and `go.sum` files.
+
+### Interfaces 
+
+```go
+
+// Command handler
+type CommandHandler interface {
+	Handle(ctx context.Context, m *gen.CommandEnvelope) ([]*gen.EventEnvelope, error)
+}
+
+// Projection handler
+type EventApplier interface {
+	ApplyEvent(event *gen.EventEnvelope) error
+}
+
+// Query handler
+type Querier interface {
+	Query(query *gen.QueryEnvelope) (interface{}, error)
+}
+
+// Replay handler
+type ReplayHandler interface {
+	ApplyEvent(m *gen.EventEnvelope) error
+}
+```
+
+
+### Functions
+
+```go
+func Command(ctx context.Context, handler CommandHandler, opts ...co.Options)
+func Project(ctx context.Context, fn EventApplier, opts ...po.Options) error 
+func Query(ctx context.Context, fn Querier, opts ...qo.Options) error 	
+func Replay(ctx context.Context, fn ReplayHandler, opts ...ro.Options)
+```
+
+### Options
+
+Command options
+```go
+func WithSubject(subject string) Options
+func WithAggreate(aggregate string) Options
+```
+
+Projection options
+```go
+func WithSubject(subject string) Options
+func WithDurable(name string) Options
+func WithAggreate(aggregate string) Options
+func WithAggrateID(aggregateID string) Options 
+func WithPrefix(prefix string) Options
+```
+
+Query options
+```go
+func WithSubject(subject string) Options 
+func WithAggreate(aggregate string) Options
+```
+
+Replay options
+```go
+func WithEventType(eventType string) Options
+func WithParent(aggreate, id string) Options 
+func WithSubject(subject string) Options
+func WithAggreate(aggregate string) Options
+func WithStartSeq(seq uint64) Options
+func WithAggregateID(id string) Options
+func WithTimeout(timeout time.Duration) Options
+```
+
+
+
+## Usage: 
 
 ```go
 ctx = bee.WithNats(ctx, nc)
@@ -33,7 +124,7 @@ agg := NewAggregate(m.AggregateId)
 bee.Replay(ctx, agg, ro.WithAggreate(m.Aggregate), ro.WithAggregateID(m.AggregateId))
 ```
 
-tiny example of live projectios: 
+## Example
 
 ```go 
 router.Get("/stream/{id}", func(w http.ResponseWriter, r *http.Request) {

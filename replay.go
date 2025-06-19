@@ -20,6 +20,13 @@ type ReplayHandler interface {
 	ApplyEvent(m *gen.EventEnvelope) error
 }
 
+// Replay replays events for a given aggregate and aggregate ID.
+// accepts ro.Options to configure the replay behavior.
+// ro.WithAggregate ro.WithAggregateID - configure the aggregate and aggregate ID
+// ro.WithSubject - use custom subject instead of default "events.aggregate.aggregateID.>"
+// ro.WithStartSeq - start from event (if you have snapshot)
+// ro.WtihParent - nests subjects
+// ro.WithTimeout - timeout if no events for stream
 func Replay(ctx context.Context, fn ReplayHandler, opts ...ro.Options) {
 
 	cfg := &ro.Config{

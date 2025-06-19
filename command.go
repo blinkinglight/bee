@@ -32,6 +32,10 @@ type CommandProcessor struct {
 	cfg       *co.Config
 }
 
+// Command is the main entry point for processing commands.
+// accepts co.Options to configure the command processor.
+// co.WithSubject - use custom subject instead of default "cmds.aggregate"
+// co.WithAggregate - use custom aggregate name
 func Command(ctx context.Context, handler CommandHandler, opts ...co.Options) {
 	cfg := &co.Config{}
 

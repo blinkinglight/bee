@@ -22,6 +22,16 @@ type Projector interface {
 	Querier
 }
 
+// Project subscribes to events for a specific aggregate and applies them using the provided EventApplier function.
+// It uses JetStream to manage the event stream and durable subscriptions.
+// The function takes a context, an EventApplier function, and optional configuration options.
+// The configuration options allow customization of the aggregate type, aggregate ID, subject, durable name,
+// and prefix for the subscription.
+// po.WithSubject sets the subject for the subscription
+// po.WithAggreate sets the aggregate type for the subscription
+// po.WithAggrateID sets the aggregate ID for the subscription
+// po.WithPrefix sets a prefix for the durable name
+// po.WithDurable sets the durable name for the subscription
 func Project(ctx context.Context, fn EventApplier, opts ...po.Options) error {
 
 	cfg := &po.Config{

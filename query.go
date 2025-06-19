@@ -10,6 +10,9 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+// Querier is a function type that takes a QueryEnvelope and returns a result or an error.
+// qo.Subnect - use custom subject instead of default "query.aggregate.get"
+// qo.Aggregate - use custom aggregate
 func Query(ctx context.Context, fn Querier, opts ...qo.Options) error {
 	cfg := &qo.Config{
 		Aggregate: "*",
