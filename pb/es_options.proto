@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package esoptions;
+
+option go_package = "gen/esoptions";
+
+import "google/protobuf/descriptor.proto";
+
+extend google.protobuf.FieldOptions {
+  bool aggregate_id = 50001;
+}
