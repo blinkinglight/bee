@@ -165,6 +165,19 @@ func (a *Aggregate) ApplyEvent(e *gen.EventEnvelope) error {
 
 ### Prebuild examples
 
+examples:
+
+`go run ./examples/subscribers`
+
+and
+
+`go run ./examples/publishers`
+
+also 
+
+`go run ./examples/query`
+
+
 ## Developing
 
 to work with this package you need 2 apps:
