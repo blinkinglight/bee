@@ -2,19 +2,6 @@
 
 ## experiment 
 
-examples:
-
-`go run ./examples/subscribers`
-
-and
-
-`go run ./examples/publishers`
-
-also 
-
-`go run ./examples/query`
-
-
 ## Table of Contents
 
   - [Getting Started](#getting-started)
@@ -24,6 +11,7 @@ also
 	- [Options](#options)
   - [Usage](#usage)
   - [Example](#example)
+	- [Prebuild examples](#prebuild-examples)
   - [Developing](#developing)
 ## Getting Started
 
@@ -174,6 +162,8 @@ func (a *Aggregate) ApplyEvent(e *gen.EventEnvelope) error {
 	return nil
 }
 ```
+
+### Prebuild examples
 
 ## Developing
 
