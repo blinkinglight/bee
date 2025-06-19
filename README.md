@@ -8,6 +8,20 @@ Bee is a minimal Go library for implementing CQRS & Event-Sourcing using NATS Je
 - Fast Replay: Efficiently rebuild aggregate states from event streams.
 - Small Footprint: Less than 1500 lines of simple, maintainable Go.
 
+
+## Typical Use Cases
+
+Bee is great for small, event-centric scenarios:
+
+- Task-Oriented Microservices: Independent scaling of read/write sides.
+- Audit Trails & Ledgers: Immutable event history for compliance.
+- Sagas & Workflows: Event-driven state transitions.
+- Edge/IoT Deployments: Compact deployment on resource-limited devices.
+- Real-Time Game States: Fast catch-up of player states.
+- SaaS On-Prem Plugins: Easy local deployment without infrastructure complexity.
+- Ad-Hoc Analytics: Quickly spin up event projections.
+
+
 ## Table of Contents
 
   - [Getting Started](#getting-started)
@@ -16,7 +30,6 @@ Bee is a minimal Go library for implementing CQRS & Event-Sourcing using NATS Je
 	- [Interfaces](#interfaces)
 	- [Functions](#functions)
 	- [Options](#options)
-  - [Use cases](#typical-use-cases)
   - [Usage](#usage)
   - [Example](#example)
 	- [Prebuild examples](#prebuild-examples)
@@ -112,18 +125,6 @@ func WithAggregateID(id string) Options
 func WithTimeout(timeout time.Duration) Options
 ```
 
-
-## Typical Use Cases
-
-Bee is great for small, event-centric scenarios:
-
-- Task-Oriented Microservices: Independent scaling of read/write sides.
-- Audit Trails & Ledgers: Immutable event history for compliance.
-- Sagas & Workflows: Event-driven state transitions.
-- Edge/IoT Deployments: Compact deployment on resource-limited devices.
-- Real-Time Game States: Fast catch-up of player states.
-- SaaS On-Prem Plugins: Easy local deployment without infrastructure complexity.
-- Ad-Hoc Analytics: Quickly spin up event projections.
 
 ## Usage: 
 
