@@ -135,7 +135,7 @@ func (cp *CommandProcessor) init(ctx context.Context, cancel context.CancelFunc)
 					for _, parent := range event.Parents {
 						parents = append(parents, fmt.Sprintf("%s.%s", parent.AggregateType, parent.AggregateId))
 					}
-					eventSubject = fmt.Sprintf("events.%s.%s.%s", strings.Join(parents, "."), event.AggregateId, event.EventType)
+					eventSubject = fmt.Sprintf("events.%s.%s.%s.%s", strings.Join(parents, "."), event.AggregateType, event.AggregateId, event.EventType)
 				}
 
 				b, _ := proto.Marshal(event)
