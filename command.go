@@ -13,7 +13,6 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-const commandsSubject = "cmds.>"
 const commandsStream = "COMMANDS"
 
 type CommandHandler interface {
@@ -47,7 +46,7 @@ func Command(ctx context.Context, handler CommandHandler, opts ...co.Options) {
 		panic("Aggregate name is required for command processor")
 	}
 
-	subject := fmt.Sprintf("cmds.%s", cfg.Aggregate)
+	subject := fmt.Sprintf(CommandsPrefix+".%s", cfg.Aggregate)
 	if cfg.Subject != "" {
 		subject = cfg.Subject
 	}
@@ -72,7 +71,7 @@ func (cp *CommandProcessor) init(ctx context.Context, cancel context.CancelFunc)
 
 	_, _ = cp.js.AddStream(&nats.StreamConfig{
 		Name:       commandsStream,
-		Subjects:   []string{commandsSubject},
+		Subjects:   []string{CommandsPrefix + ".>"},
 		Retention:  nats.WorkQueuePolicy,
 		Storage:    nats.FileStorage,
 		Replicas:   1,

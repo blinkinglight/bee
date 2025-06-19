@@ -51,7 +51,7 @@ func Project(ctx context.Context, fn EventApplier, opts ...po.Options) error {
 	}
 
 	if cfg.Subject == "" {
-		cfg.Subject = fmt.Sprintf("events.%s.%s.>", cfg.Aggregate, cfg.AggregateID)
+		cfg.Subject = fmt.Sprintf(EventsPrefix+".%s.%s.>", cfg.Aggregate, cfg.AggregateID)
 	}
 
 	prefix := ""
@@ -63,7 +63,7 @@ func Project(ctx context.Context, fn EventApplier, opts ...po.Options) error {
 
 	js.AddStream(&nats.StreamConfig{
 		Name:      "EVENTS",
-		Subjects:  []string{"events.>"},
+		Subjects:  []string{EventsPrefix + ".>"},
 		Storage:   nats.FileStorage,
 		Retention: nats.LimitsPolicy,
 		MaxAge:    0,

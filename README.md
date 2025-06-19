@@ -6,6 +6,7 @@
 
   - [Getting Started](#getting-started)
     - [Installing](#installing)
+	- [Settings](#settings)
 	- [Interfaces](#interfaces)
 	- [Functions](#functions)
 	- [Options](#options)
@@ -23,6 +24,14 @@ go get github.com/blinkinglight/bee
 ```
 
 This will retrieve the library and update your `go.mod` and `go.sum` files.
+
+### Settings
+
+```go
+bee.EventsPrefix = "events"
+bee.CommandsPrefix = "cmds"
+bee.QueryPrefix = "query"
+```
 
 ### Interfaces 
 

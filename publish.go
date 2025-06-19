@@ -28,6 +28,6 @@ func PublishCommand(ctx context.Context, cmd *gen.CommandEnvelope, payload any) 
 	}
 
 	b, _ := proto.Marshal(cmd)
-	_, err := js.Publish("cmds."+cmd.Aggregate, b)
+	_, err := js.Publish(CommandsPrefix+"."+cmd.Aggregate, b)
 	return err
 }

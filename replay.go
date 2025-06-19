@@ -38,9 +38,9 @@ func Replay(ctx context.Context, fn ReplayHandler, opts ...ro.Options) {
 		opt(cfg)
 	}
 
-	subject := fmt.Sprintf("events.%s.%s.>", cfg.Aggregate, cfg.AggregateID)
+	subject := fmt.Sprintf("%s.%s.%s.>", EventsPrefix, cfg.Aggregate, cfg.AggregateID)
 	if len(cfg.Parents) > 0 {
-		cfg.Subject = fmt.Sprintf("events.%s.%s.%s.>", strings.Join(cfg.Parents, "."), cfg.Aggregate, cfg.AggregateID)
+		cfg.Subject = fmt.Sprintf("%s.%s.%s.%s.>", EventsPrefix, strings.Join(cfg.Parents, "."), cfg.Aggregate, cfg.AggregateID)
 	}
 
 	if cfg.Subject != "" {
@@ -145,7 +145,7 @@ func ReplayAndSubscribe[T EventApplier](ctx context.Context, agg T, opts ...ro.O
 		opt(cfg)
 	}
 
-	subject := fmt.Sprintf("events.%s.%s.>", cfg.Aggregate, cfg.AggregateID)
+	subject := fmt.Sprintf("%s.%s.%s.>", EventsPrefix, cfg.Aggregate, cfg.AggregateID)
 	if cfg.Subject != "" {
 		subject = cfg.Subject
 	}

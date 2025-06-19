@@ -22,7 +22,7 @@ func Query(ctx context.Context, fn Querier, opts ...qo.Options) error {
 		opt(cfg)
 	}
 
-	subject := "query." + cfg.Aggregate + ".get"
+	subject := QueryPrefix + "." + cfg.Aggregate + ".get"
 	if cfg.Subject != "" {
 		subject = cfg.Subject
 	}
