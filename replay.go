@@ -128,6 +128,14 @@ func Replay(ctx context.Context, fn ReplayHandler, opts ...ro.Options) {
 	}
 }
 
+// ReplayAndSubscribe replays events for a given aggregate and aggregate ID,
+// and subscribes to new events.
+// It accepts ro.Options to configure the replay behavior.
+// ro.WithAggregate ro.WithAggregateID - configure the aggregate and aggregate ID
+// ro.WithSubject - use custom subject instead of default "events.aggregate.aggregateID.>"
+// ro.WithStartSeq - start from event (if you have snapshot)
+// ro.WtihParent - nests subjects
+// ro.WithTimeout - timeout if no events for stream
 func ReplayAndSubscribe[T EventApplier](ctx context.Context, agg T, opts ...ro.Options) <-chan T {
 	cfg := &ro.Config{
 		StartSeq: DeliverAll,

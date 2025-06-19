@@ -69,6 +69,7 @@ func Command(ctx context.Context, handler CommandHandler, opts ...co.Options)
 func Project(ctx context.Context, fn EventApplier, opts ...po.Options) error 
 func Query(ctx context.Context, fn Querier, opts ...qo.Options) error 	
 func Replay(ctx context.Context, fn ReplayHandler, opts ...ro.Options)
+func ReplayAndSubscribe[T EventApplier](ctx context.Context, agg T, opts ...ro.Options) <-chan T {
 ```
 
 ### Options
