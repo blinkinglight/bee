@@ -170,7 +170,7 @@ func TestCommand(t *testing.T) {
 
 	ctx := bee.WithNats(context.Background(), nc)
 	ctx = bee.WithJetStream(ctx, js)
-	go bee.Command(ctx, New(js), co.WithAggreate("users"))
+	go bee.Command(ctx, New(ctx), co.WithAggreate("users"))
 
 	// service := New(js)
 	// err = bee.Register(context.Background(), "users", service.Handle)
@@ -250,20 +250,25 @@ func (t *TicketsAggregate) ApplyEvent(e *gen.EventEnvelope) error {
 	return nil
 }
 
-func New(js nats.JetStreamContext) *UserServiceTest {
+func New(ctx context.Context) *UserServiceTest {
+	js, _ := bee.JetStream(ctx)
+
 	return &UserServiceTest{
-		js: js,
+		js:  js,
+		ctx: ctx,
 	}
 }
 
 type UserServiceTest struct {
-	js nats.JetStreamContext
+	js  nats.JetStreamContext
+	ctx context.Context
 }
 
-func (s UserServiceTest) Handle(ctx context.Context, m *gen.CommandEnvelope) ([]*gen.EventEnvelope, error) {
+func (s UserServiceTest) Handle(m *gen.CommandEnvelope) ([]*gen.EventEnvelope, error) {
+
 	agg := NewAggregate(m.AggregateId)
-	bee.Replay(ctx, agg, ro.WithAggreate(m.Aggregate), ro.WithAggregateID(m.AggregateId))
-	return agg.ApplyCommand(ctx, m)
+	bee.Replay(s.ctx, agg, ro.WithAggreate(m.Aggregate), ro.WithAggregateID(m.AggregateId))
+	return agg.ApplyCommand(m)
 }
 
 // --- UserAggregateTest implements ES aggregate logic ---
@@ -302,7 +307,7 @@ func (u *UserAggregateTest) ApplyEvent(e *gen.EventEnvelope) error {
 	return nil
 }
 
-func (u *UserAggregateTest) ApplyCommand(_ context.Context, c *gen.CommandEnvelope) ([]*gen.EventEnvelope, error) {
+func (u *UserAggregateTest) ApplyCommand(c *gen.CommandEnvelope) ([]*gen.EventEnvelope, error) {
 	if c.AggregateId != u.ID {
 		return nil, fmt.Errorf("aggregate ID mismatch")
 	}

@@ -16,7 +16,7 @@ import (
 const commandsStream = "COMMANDS"
 
 type CommandHandler interface {
-	Handle(ctx context.Context, m *gen.CommandEnvelope) ([]*gen.EventEnvelope, error)
+	Handle(m *gen.CommandEnvelope) ([]*gen.EventEnvelope, error)
 }
 
 // type CommandHandlerFunc func(ctx context.Context, m *gen.CommandEnvelope) ([]*gen.EventEnvelope, error)
@@ -118,7 +118,7 @@ func (cp *CommandProcessor) init(ctx context.Context, cancel context.CancelFunc)
 			errorNotificationSubject := fmt.Sprintf("notifications.%s.error", cmd.CorrelationId)
 			successNotificationSubject := fmt.Sprintf("notifications.%s.success", cmd.CorrelationId)
 
-			events, err := cp.handler.Handle(ctx, &cmd)
+			events, err := cp.handler.Handle(&cmd)
 			if err != nil {
 				log.Printf("Error handling command: %v", err)
 				if cmd.CorrelationId != "" {

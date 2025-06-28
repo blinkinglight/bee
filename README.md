@@ -61,7 +61,7 @@ bee.QueryPrefix = "query"
 
 // Command handler
 type CommandHandler interface {
-	Handle(ctx context.Context, m *gen.CommandEnvelope) ([]*gen.EventEnvelope, error)
+	Handle(m *gen.CommandEnvelope) ([]*gen.EventEnvelope, error)
 }
 
 // Projection handler

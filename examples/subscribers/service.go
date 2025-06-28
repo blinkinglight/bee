@@ -10,17 +10,18 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
-func NewService() *UserService {
-	return &UserService{}
+func NewService(ctx context.Context) *UserService {
+	return &UserService{ctx: ctx}
 }
 
 type UserService struct {
+	ctx context.Context
 }
 
-func (s UserService) Handle(ctx context.Context, m *gen.CommandEnvelope) ([]*gen.EventEnvelope, error) {
+func (s UserService) Handle(m *gen.CommandEnvelope) ([]*gen.EventEnvelope, error) {
 	agg := NewAggregate(m.AggregateId)
 
-	bee.Replay(ctx, agg, ro.WithAggreate(m.Aggregate), ro.WithAggregateID(m.AggregateId))
+	bee.Replay(s.ctx, agg, ro.WithAggreate(m.Aggregate), ro.WithAggregateID(m.AggregateId))
 
 	if agg.Found && m.CommandType == "create" {
 		return nil, fmt.Errorf("aggregate %s with ID %s already exists", m.Aggregate, m.AggregateId)
@@ -36,5 +37,5 @@ func (s UserService) Handle(ctx context.Context, m *gen.CommandEnvelope) ([]*gen
 		"corge": nil,
 	})
 
-	return agg.ApplyCommand(ctx, m)
+	return agg.ApplyCommand(s.ctx, m)
 }
