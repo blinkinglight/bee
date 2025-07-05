@@ -122,6 +122,11 @@ func TestReplay(t *testing.T) {
 	ctx := bee.WithNats(t.Context(), nc)
 	ctx = bee.WithJetStream(ctx, js)
 
+	start := time.Now()
+	replayHandlertmp := &MockReplayHandler{}
+	bee.Replay(ctx, replayHandlertmp, ro.WithAggreate("users"), ro.WithAggregateID("*"))
+	t.Logf("Replay took %s", time.Since(start))
+
 	evt1 := &gen.EventEnvelope{
 		EventType:     "created",
 		AggregateType: "users",

@@ -65,6 +65,7 @@ func Replay(ctx context.Context, fn ReplayHandler, opts ...ro.Options) {
 		cancel()
 		return
 	}
+	_ = num
 
 	if err := ls.AutoUnsubscribe(1); err != nil {
 		cancel()
