@@ -50,64 +50,39 @@ func Replay(ctx context.Context, fn ReplayHandler, opts ...ro.Options) {
 	lctx, cancel := context.WithCancel(ctx)
 	js, _ := JetStream(ctx)
 
-	oneMsg := make(chan *nats.Msg, 1)
-	var ls *nats.Subscription
-	var err error
-	ls, err = js.Subscribe(subject, func(msg *nats.Msg) {
-		oneMsg <- msg
-
-	}, nats.DeliverLast())
-
-	if err != nil {
-		cancel()
-		return
-	}
-	num, _, err := ls.MaxPending()
-	if err != nil {
-		cancel()
-		return
-	}
-	_ = num
-
-	// log.Printf("Replay: Subscribed to %s.%s with %d pending messages", cfg.Aggregate, cfg.AggregateID, num)
-
-	if err := ls.AutoUnsubscribe(1); err != nil {
-		cancel()
-		return
-	}
-	if num <= 0 {
-		cancel()
-		return
-	}
-
-	var lmsg *nats.Msg
-	select {
-	case <-ctx.Done():
-		cancel()
-		return
-	case lmsg = <-oneMsg:
-	}
-
-	meta, _ := lmsg.Metadata()
-
 	msgs := make(chan *nats.Msg, 128)
 	opt := nats.DeliverAll()
 	if cfg.StartSeq > 0 {
 		opt = nats.StartSequence(cfg.StartSeq)
 	}
 	sub, err := js.Subscribe(subject, func(msg *nats.Msg) {
-		msgs <- msg
+		select {
+		case <-lctx.Done():
+			return
+		case msgs <- msg:
+		}
+
 	}, opt, nats.ManualAck())
 	if err != nil {
-		log.Printf("Replay: Error subscribing to %s.%s: %v", cfg.Aggregate, cfg.AggregateID, err)
+		cancel()
+		return
+	}
+	num, _, err := sub.MaxPending()
+	if err != nil {
+		cancel()
+		return
+	}
+	_ = num
+	if num <= 0 {
 		cancel()
 		return
 	}
 
-	defer sub.Unsubscribe()
 	defer close(msgs)
+	defer sub.Unsubscribe()
 
 	go func() {
+		n := 0
 		for {
 			select {
 			case <-ctx.Done():
@@ -117,11 +92,8 @@ func Replay(ctx context.Context, fn ReplayHandler, opts ...ro.Options) {
 				if msg == nil {
 					continue
 				}
-				m, _ := msg.Metadata()
-				last := false
-				if m.Sequence.Stream == meta.Sequence.Stream {
-					last = true
-				}
+				n++
+
 				var event = &gen.EventEnvelope{}
 				if err := proto.Unmarshal(msg.Data, event); err != nil {
 					_ = err
@@ -129,17 +101,14 @@ func Replay(ctx context.Context, fn ReplayHandler, opts ...ro.Options) {
 
 				fn.ApplyEvent(event)
 				msg.Ack()
-				if last {
+				if n == num {
 					cancel()
 					return
 				}
 			}
 		}
 	}()
-	select {
-	case <-ctx.Done():
-	case <-lctx.Done():
-	}
+	<-lctx.Done()
 }
 
 // ReplayAndSubscribe replays events for a given aggregate and aggregate ID,

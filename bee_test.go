@@ -55,6 +55,7 @@ type DeleteUserCommand struct {
 type MockReplayHandler struct {
 	Name    string
 	Country string
+	created bool
 }
 
 func (m *MockReplayHandler) ApplyEvent(e *gen.EventEnvelope) error {
@@ -64,6 +65,10 @@ func (m *MockReplayHandler) ApplyEvent(e *gen.EventEnvelope) error {
 	}
 	switch event := event.(type) {
 	case *UserCreatedEvent:
+		if m.created {
+			return fmt.Errorf("user already created")
+		}
+		m.created = true
 		m.Name = event.Name
 		m.Country = event.Country
 	case *UserUpdatedEvent:
@@ -79,7 +84,7 @@ func client() (*nats.Conn, func(), error) {
 	server, err := embeddednats.New(
 		context.Background(),
 		embeddednats.WithShouldClearData(true),
-		embeddednats.WithDirectory("./tmp"),
+		embeddednats.WithDirectory("./tmp1"),
 		embeddednats.WithNATSServerOptions(&server.Options{
 			JetStream:    true,
 			NoLog:        false,
@@ -114,6 +119,7 @@ func TestReplay(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to get JetStream context: %v", err)
 	}
+	js.DeleteStream("events") // Clean up any existing stream
 	js.AddStream(&nats.StreamConfig{
 		Name:     "events",
 		Subjects: []string{"events.>"},
@@ -121,11 +127,6 @@ func TestReplay(t *testing.T) {
 
 	ctx := bee.WithNats(t.Context(), nc)
 	ctx = bee.WithJetStream(ctx, js)
-
-	start := time.Now()
-	replayHandlertmp := &MockReplayHandler{}
-	bee.Replay(ctx, replayHandlertmp, ro.WithAggreate("users"), ro.WithAggregateID("*"))
-	t.Logf("Replay took %s", time.Since(start))
 
 	evt1 := &gen.EventEnvelope{
 		EventType:     "created",
@@ -139,6 +140,7 @@ func TestReplay(t *testing.T) {
 		t.Fatalf("Failed to publish event: %v", err)
 	}
 
+	time.Sleep(100 * time.Millisecond) // Wait for events to be processed
 	evt2 := &gen.EventEnvelope{
 		EventType:     "updated",
 		AggregateType: "users",
@@ -173,16 +175,17 @@ func TestCommand(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to get JetStream context: %v", err)
 	}
+	js.DeleteStream("cmds") // Clean up any existing stream
 
 	ctx := bee.WithNats(context.Background(), nc)
 	ctx = bee.WithJetStream(ctx, js)
 	go bee.Command(ctx, New(ctx), co.WithAggreate("users"))
-
+	time.Sleep(100 * time.Millisecond) // Give some time for the command handler to start
 	// service := New(js)
 	// err = bee.Register(context.Background(), "users", service.Handle)
 	cmd1 := &gen.CommandEnvelope{
 		CommandType: "create",
-		AggregateId: "123",
+		AggregateId: "321",
 		Aggregate:   "users",
 		Payload:     []byte(`{"name": "John Doe", "country": "USA"}`),
 	}
@@ -191,9 +194,10 @@ func TestCommand(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to publish command: %v", err)
 	}
+	time.Sleep(100 * time.Millisecond) // Wait for command processing
 	cmd2 := &gen.CommandEnvelope{
 		CommandType: "update",
-		AggregateId: "123",
+		AggregateId: "321",
 		Aggregate:   "users",
 		Payload:     []byte(`{"name": "John Doe", "country": "Canada"}`),
 	}
@@ -204,10 +208,10 @@ func TestCommand(t *testing.T) {
 		t.Fatalf("Failed to publish command: %v", err)
 	}
 
-	time.Sleep(500 * time.Millisecond) // Wait for command processing
+	time.Sleep(100 * time.Millisecond) // Wait for command processing
 
-	replayHandler := NewAggregate("123")
-	bee.Replay(ctx, replayHandler, ro.WithAggreate("users"), ro.WithAggregateID("*"))
+	replayHandler := NewAggregate("321")
+	bee.Replay(ctx, replayHandler, ro.WithAggreate("users"), ro.WithAggregateID("321"))
 
 	if replayHandler.Name != "John Doe" {
 		t.Errorf("Expected name to be 'John Doe', got '%s'", replayHandler.Name)
@@ -283,6 +287,7 @@ type UserAggregateTest struct {
 	Name    string
 	Country string
 	Deleted bool
+	created bool
 }
 
 type User struct {
@@ -301,6 +306,10 @@ func (u *UserAggregateTest) ApplyEvent(e *gen.EventEnvelope) error {
 	}
 	switch event := event.(type) {
 	case *UserCreatedEvent:
+		if u.created {
+			return fmt.Errorf("user already created")
+		}
+		u.created = true
 		u.Name = event.Name
 		u.Country = event.Country
 		u.Deleted = false
@@ -319,6 +328,7 @@ func (u *UserAggregateTest) ApplyCommand(c *gen.CommandEnvelope) ([]*gen.EventEn
 	}
 	var event *gen.EventEnvelope = &gen.EventEnvelope{AggregateId: u.ID}
 	event.AggregateType = "users"
+	event.AggregateId = c.AggregateId
 
 	command, err := bee.UnmarshalCommand(c)
 	if err != nil {
