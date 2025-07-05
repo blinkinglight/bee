@@ -59,6 +59,13 @@ func Replay(ctx context.Context, fn ReplayHandler, opts ...ro.Options) {
 		cancel()
 		return
 	}
+	num, _, err := ls.Pending()
+	if err != nil {
+		log.Printf("Replay: Error getting pending messages for %s.%s: %v", cfg.Aggregate, cfg.AggregateID, err)
+		cancel()
+		return
+	}
+
 	if err := ls.AutoUnsubscribe(1); err != nil {
 		cancel()
 		return
@@ -73,6 +80,11 @@ func Replay(ctx context.Context, fn ReplayHandler, opts ...ro.Options) {
 		cancel()
 		return
 	case lmsg = <-oneMsg:
+	default:
+		if num == 0 {
+			cancel()
+			return
+		}
 	}
 	meta, _ := lmsg.Metadata()
 
