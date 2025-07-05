@@ -150,6 +150,7 @@ func TestReplay(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to publish event: %v", err)
 	}
+	time.Sleep(100 * time.Millisecond) // Wait for events to be processed
 	replayHandler := &MockReplayHandler{}
 	bee.Replay(ctx, replayHandler, ro.WithAggreate("users"), ro.WithAggregateID("*"))
 

@@ -51,15 +51,18 @@ func Replay(ctx context.Context, fn ReplayHandler, opts ...ro.Options) {
 	js, _ := JetStream(ctx)
 
 	oneMsg := make(chan *nats.Msg, 1)
-	ls, err := js.Subscribe(subject, func(msg *nats.Msg) {
+	var ls *nats.Subscription
+	var err error
+	ls, err = js.Subscribe(subject, func(msg *nats.Msg) {
 		oneMsg <- msg
+
 	}, nats.DeliverLast())
 
 	if err != nil {
 		cancel()
 		return
 	}
-	num, _, err := ls.Pending()
+	num, _, err := ls.MaxPending()
 	if err != nil {
 		log.Printf("Replay: Error getting pending messages for %s.%s: %v", cfg.Aggregate, cfg.AggregateID, err)
 		cancel()
@@ -67,26 +70,25 @@ func Replay(ctx context.Context, fn ReplayHandler, opts ...ro.Options) {
 	}
 	_ = num
 
+	// log.Printf("Replay: Subscribed to %s.%s with %d pending messages", cfg.Aggregate, cfg.AggregateID, num)
+
 	if err := ls.AutoUnsubscribe(1); err != nil {
 		cancel()
 		return
 	}
-	c := time.NewTimer(cfg.Timeout)
-	var lmsg *nats.Msg
-	select {
-	case <-c.C:
+	if num <= 0 {
 		cancel()
 		return
+	}
+
+	var lmsg *nats.Msg
+	select {
 	case <-ctx.Done():
 		cancel()
 		return
 	case lmsg = <-oneMsg:
-	default:
-		if num == 0 {
-			cancel()
-			return
-		}
 	}
+
 	meta, _ := lmsg.Metadata()
 
 	msgs := make(chan *nats.Msg, 128)
