@@ -64,7 +64,6 @@ func Replay(ctx context.Context, fn ReplayHandler, opts ...ro.Options) {
 	}
 	num, _, err := ls.MaxPending()
 	if err != nil {
-		log.Printf("Replay: Error getting pending messages for %s.%s: %v", cfg.Aggregate, cfg.AggregateID, err)
 		cancel()
 		return
 	}
