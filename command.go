@@ -129,6 +129,12 @@ func (cp *CommandProcessor) init(ctx context.Context, cancel context.CancelFunc)
 			}
 
 			for _, event := range events {
+				if event.AggregateType == "" {
+					event.AggregateType = cmd.Aggregate
+				}
+				if event.AggregateId == "" {
+					event.AggregateId = cmd.AggregateId
+				}
 				eventSubject := fmt.Sprintf("events.%s.%s.%s", event.AggregateType, event.AggregateId, event.EventType)
 				if len(event.Parents) > 0 {
 					var parents []string
