@@ -125,6 +125,7 @@ func TestReplay(t *testing.T) {
 	js.AddStream(&nats.StreamConfig{
 		Name:     "events",
 		Subjects: []string{"events.>"},
+		Storage:  nats.MemoryStorage,
 	})
 
 	ctx := bee.WithNats(t.Context(), nc)
@@ -177,8 +178,13 @@ func TestCommand(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to get JetStream context: %v", err)
 	}
-	js.DeleteStream("cmds") // Clean up any existing stream
-
+	js.DeleteStream("cmds")   // Clean up any existing stream
+	js.DeleteStream("events") // Clean up any existing stream
+	js.AddStream(&nats.StreamConfig{
+		Name:     "events",
+		Subjects: []string{"events.>"},
+		Storage:  nats.MemoryStorage,
+	})
 	ctx := bee.WithNats(context.Background(), nc)
 	ctx = bee.WithJetStream(ctx, js)
 	go bee.Command(ctx, New(ctx), co.WithAggreate("users"))
