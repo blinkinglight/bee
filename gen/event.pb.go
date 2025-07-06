@@ -155,63 +155,11 @@ func (x *EventEnvelope) GetParents() []*ParentRef {
 	return nil
 }
 
-type ParentRef struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	AggregateType string                 `protobuf:"bytes,1,opt,name=aggregate_type,json=aggregateType,proto3" json:"aggregate_type,omitempty"`
-	AggregateId   string                 `protobuf:"bytes,2,opt,name=aggregate_id,json=aggregateId,proto3" json:"aggregate_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ParentRef) Reset() {
-	*x = ParentRef{}
-	mi := &file_event_proto_msgTypes[1]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ParentRef) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ParentRef) ProtoMessage() {}
-
-func (x *ParentRef) ProtoReflect() protoreflect.Message {
-	mi := &file_event_proto_msgTypes[1]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ParentRef.ProtoReflect.Descriptor instead.
-func (*ParentRef) Descriptor() ([]byte, []int) {
-	return file_event_proto_rawDescGZIP(), []int{1}
-}
-
-func (x *ParentRef) GetAggregateType() string {
-	if x != nil {
-		return x.AggregateType
-	}
-	return ""
-}
-
-func (x *ParentRef) GetAggregateId() string {
-	if x != nil {
-		return x.AggregateId
-	}
-	return ""
-}
-
 var File_event_proto protoreflect.FileDescriptor
 
 const file_event_proto_rawDesc = "" +
 	"\n" +
-	"\vevent.proto\x12\x03gen\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xa9\x04\n" +
+	"\vevent.proto\x12\x03gen\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\tref.proto\"\xa9\x04\n" +
 	"\rEventEnvelope\x12\x19\n" +
 	"\bevent_id\x18\x01 \x01(\tR\aeventId\x12%\n" +
 	"\x0ecorrelation_id\x18\x02 \x01(\tR\rcorrelationId\x128\n" +
@@ -229,10 +177,7 @@ const file_event_proto_rawDesc = "" +
 	"\aparents\x18\f \x03(\v2\x0e.gen.ParentRefR\aparents\x1a;\n" +
 	"\rMetadataEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"U\n" +
-	"\tParentRef\x12%\n" +
-	"\x0eaggregate_type\x18\x01 \x01(\tR\raggregateType\x12!\n" +
-	"\faggregate_id\x18\x02 \x01(\tR\vaggregateIdB\x1bZ\x19github.com/ituoga/iot/genb\x06proto3"
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01B\"Z github.com/blinkinglight/bee/genb\x06proto3"
 
 var (
 	file_event_proto_rawDescOnce sync.Once
@@ -246,19 +191,19 @@ func file_event_proto_rawDescGZIP() []byte {
 	return file_event_proto_rawDescData
 }
 
-var file_event_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_event_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
 var file_event_proto_goTypes = []any{
 	(*EventEnvelope)(nil),         // 0: gen.EventEnvelope
-	(*ParentRef)(nil),             // 1: gen.ParentRef
-	nil,                           // 2: gen.EventEnvelope.MetadataEntry
-	(*timestamppb.Timestamp)(nil), // 3: google.protobuf.Timestamp
-	(*structpb.Struct)(nil),       // 4: google.protobuf.Struct
+	nil,                           // 1: gen.EventEnvelope.MetadataEntry
+	(*timestamppb.Timestamp)(nil), // 2: google.protobuf.Timestamp
+	(*structpb.Struct)(nil),       // 3: google.protobuf.Struct
+	(*ParentRef)(nil),             // 4: gen.ParentRef
 }
 var file_event_proto_depIdxs = []int32{
-	3, // 0: gen.EventEnvelope.timestamp:type_name -> google.protobuf.Timestamp
-	2, // 1: gen.EventEnvelope.metadata:type_name -> gen.EventEnvelope.MetadataEntry
-	4, // 2: gen.EventEnvelope.extra_metadata:type_name -> google.protobuf.Struct
-	1, // 3: gen.EventEnvelope.parents:type_name -> gen.ParentRef
+	2, // 0: gen.EventEnvelope.timestamp:type_name -> google.protobuf.Timestamp
+	1, // 1: gen.EventEnvelope.metadata:type_name -> gen.EventEnvelope.MetadataEntry
+	3, // 2: gen.EventEnvelope.extra_metadata:type_name -> google.protobuf.Struct
+	4, // 3: gen.EventEnvelope.parents:type_name -> gen.ParentRef
 	4, // [4:4] is the sub-list for method output_type
 	4, // [4:4] is the sub-list for method input_type
 	4, // [4:4] is the sub-list for extension type_name
@@ -271,13 +216,14 @@ func file_event_proto_init() {
 	if File_event_proto != nil {
 		return
 	}
+	file_ref_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_event_proto_rawDesc), len(file_event_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   3,
+			NumMessages:   2,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

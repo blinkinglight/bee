@@ -1,0 +1,1 @@
+{"Created":"2025-07-06T08:38:48.094524Z","Name":"users_default_cmd","durable_name":"users_default_cmd","name":"users_default_cmd","deliver_policy":"all","ack_policy":"explicit","ack_wait":30000000000,"max_deliver":-1,"filter_subject":"cmds.users","replay_policy":"instant","max_waiting":512,"max_ack_pending":1000,"num_replicas":0}

@@ -13,6 +13,7 @@ import (
 type EventApplier interface {
 	ApplyEvent(event *gen.EventEnvelope) error
 }
+
 type Querier interface {
 	Query(query *gen.QueryEnvelope) (interface{}, error)
 }

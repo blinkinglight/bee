@@ -82,6 +82,12 @@ type Querier interface {
 type ReplayHandler interface {
 	ApplyEvent(m *gen.EventEnvelope) error
 }
+
+// Event process manager handler
+type ManagerEventApplier interface {
+	Handle(event *gen.EventEnvelope) ([]*gen.CommandEnvelope, error)
+}
+
 ```
 
 
@@ -92,7 +98,8 @@ func Command(ctx context.Context, handler CommandHandler, opts ...co.Options)
 func Project(ctx context.Context, fn EventApplier, opts ...po.Options) error 
 func Query(ctx context.Context, fn Querier, opts ...qo.Options) error 	
 func Replay(ctx context.Context, fn ReplayHandler, opts ...ro.Options)
-func ReplayAndSubscribe[T EventApplier](ctx context.Context, agg T, opts ...ro.Options) <-chan T {
+func ReplayAndSubscribe[T EventApplier](ctx context.Context, agg T, opts ...ro.Options) <-chan T 
+func Event(ctx context.Context, fn ManagerEventApplier, opts ...eo.Options)
 ```
 
 ### Options
@@ -129,6 +136,15 @@ func WithAggregateID(id string) Options
 func WithTimeout(timeout time.Duration) Options
 ```
 
+Event options
+```go
+func WithSubject(subject string) 
+func WithAggreate(aggregate string)
+func WithAggregateID(aggregateID string)
+func WithDurableName(durableName string)
+func WithPrefix(prefix string)
+```
+
 
 ## Usage: 
 
@@ -138,6 +154,7 @@ ctx = bee.WithJetStream(ctx, js)
 go bee.Command(ctx, NewService(), co.WithAggreate("users"))
 go bee.Project(ctx, NewUserProjection(), po.WithAggreate("users"))
 go bee.Query(ctx, NewUserProjection(), qo.WithAggreate("users"))
+go bee.Event(ctx, NewProcessManager(), eo.WithAggreate("users"))
 ```
 
 ```go

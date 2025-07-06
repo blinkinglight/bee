@@ -1,0 +1,1 @@
+{"Created":"2025-07-06T08:38:48.093537Z","Name":"procmgrs_users","durable_name":"procmgrs_users","name":"procmgrs_users","deliver_policy":"all","ack_policy":"explicit","ack_wait":30000000000,"max_deliver":-1,"filter_subject":"events.users.*.\u003e","replay_policy":"instant","max_ack_pending":1000,"deliver_subject":"_INBOX.KuGSqGwFi0qp6wJM4SOjaV","num_replicas":0}

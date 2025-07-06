@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package gen;
+option go_package = "github.com/blinkinglight/bee/gen"; // sugeneruos tiesiai į gen/
+
+import "google/protobuf/struct.proto";
+
+import "google/protobuf/timestamp.proto";
+
+message ParentRef {
+  string aggregate_type = 1;
+  string aggregate_id = 2;
+}

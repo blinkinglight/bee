@@ -19,8 +19,6 @@ type CommandHandler interface {
 	Handle(m *gen.CommandEnvelope) ([]*gen.EventEnvelope, error)
 }
 
-// type CommandHandlerFunc func(ctx context.Context, m *gen.CommandEnvelope) ([]*gen.EventEnvelope, error)
-
 type CommandProcessor struct {
 	js        nats.JetStreamContext
 	nc        *nats.Conn
@@ -69,7 +67,7 @@ func Command(ctx context.Context, handler CommandHandler, opts ...co.Options) {
 
 func (cp *CommandProcessor) init(ctx context.Context, cancel context.CancelFunc) error {
 
-	_, _ = cp.js.AddStream(&nats.StreamConfig{
+	_, err := cp.js.AddStream(&nats.StreamConfig{
 		Name:       commandsStream,
 		Subjects:   []string{CommandsPrefix + ".>"},
 		Retention:  nats.WorkQueuePolicy,
@@ -78,7 +76,11 @@ func (cp *CommandProcessor) init(ctx context.Context, cancel context.CancelFunc)
 		Duplicates: 5 * time.Minute,
 	})
 
-	_, err := cp.js.AddConsumer(commandsStream, &nats.ConsumerConfig{
+	if err != nil {
+		log.Printf("Error adding stream: %v", err)
+	}
+
+	_, err = cp.js.AddConsumer(commandsStream, &nats.ConsumerConfig{
 		Name:          cp.aggregate + "_" + cp.durable + "_cmd",
 		Durable:       cp.aggregate + "_" + cp.durable + "_cmd",
 		FilterSubject: cp.subject,
@@ -99,7 +101,7 @@ func (cp *CommandProcessor) init(ctx context.Context, cancel context.CancelFunc)
 	for {
 		if ctx.Err() != nil {
 			cancel()
-			return nil
+			return ctx.Err()
 		}
 		msg, _ := sub.Fetch(1, nats.MaxWait(60*time.Second))
 		if len(msg) == 0 {

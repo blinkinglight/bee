@@ -36,6 +36,7 @@ type CommandEnvelope struct {
 	Metadata      map[string]string      `protobuf:"bytes,9,rep,name=metadata,proto3" json:"metadata,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	ExtraMetadata *structpb.Struct       `protobuf:"bytes,10,opt,name=extra_metadata,json=extraMetadata,proto3" json:"extra_metadata,omitempty"`
 	TenantId      string                 `protobuf:"bytes,11,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
+	Parents       []*ParentRef           `protobuf:"bytes,12,rep,name=parents,proto3" json:"parents,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -147,11 +148,18 @@ func (x *CommandEnvelope) GetTenantId() string {
 	return ""
 }
 
+func (x *CommandEnvelope) GetParents() []*ParentRef {
+	if x != nil {
+		return x.Parents
+	}
+	return nil
+}
+
 var File_command_proto protoreflect.FileDescriptor
 
 const file_command_proto_rawDesc = "" +
 	"\n" +
-	"\rcommand.proto\x12\x03gen\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1cgoogle/protobuf/struct.proto\"\x82\x04\n" +
+	"\rcommand.proto\x12\x03gen\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\tref.proto\"\xac\x04\n" +
 	"\x0fCommandEnvelope\x12\x1d\n" +
 	"\n" +
 	"command_id\x18\x01 \x01(\tR\tcommandId\x12%\n" +
@@ -165,10 +173,11 @@ const file_command_proto_rawDesc = "" +
 	"\bmetadata\x18\t \x03(\v2\".gen.CommandEnvelope.MetadataEntryR\bmetadata\x12>\n" +
 	"\x0eextra_metadata\x18\n" +
 	" \x01(\v2\x17.google.protobuf.StructR\rextraMetadata\x12\x1b\n" +
-	"\ttenant_id\x18\v \x01(\tR\btenantId\x1a;\n" +
+	"\ttenant_id\x18\v \x01(\tR\btenantId\x12(\n" +
+	"\aparents\x18\f \x03(\v2\x0e.gen.ParentRefR\aparents\x1a;\n" +
 	"\rMetadataEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01B\x1bZ\x19github.com/ituoga/iot/genb\x06proto3"
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01B\"Z github.com/blinkinglight/bee/genb\x06proto3"
 
 var (
 	file_command_proto_rawDescOnce sync.Once
@@ -188,16 +197,18 @@ var file_command_proto_goTypes = []any{
 	nil,                           // 1: gen.CommandEnvelope.MetadataEntry
 	(*timestamppb.Timestamp)(nil), // 2: google.protobuf.Timestamp
 	(*structpb.Struct)(nil),       // 3: google.protobuf.Struct
+	(*ParentRef)(nil),             // 4: gen.ParentRef
 }
 var file_command_proto_depIdxs = []int32{
 	2, // 0: gen.CommandEnvelope.timestamp:type_name -> google.protobuf.Timestamp
 	1, // 1: gen.CommandEnvelope.metadata:type_name -> gen.CommandEnvelope.MetadataEntry
 	3, // 2: gen.CommandEnvelope.extra_metadata:type_name -> google.protobuf.Struct
-	3, // [3:3] is the sub-list for method output_type
-	3, // [3:3] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	4, // 3: gen.CommandEnvelope.parents:type_name -> gen.ParentRef
+	4, // [4:4] is the sub-list for method output_type
+	4, // [4:4] is the sub-list for method input_type
+	4, // [4:4] is the sub-list for extension type_name
+	4, // [4:4] is the sub-list for extension extendee
+	0, // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_command_proto_init() }
@@ -205,6 +216,7 @@ func file_command_proto_init() {
 	if File_command_proto != nil {
 		return
 	}
+	file_ref_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

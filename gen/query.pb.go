@@ -118,7 +118,7 @@ const file_query_proto_rawDesc = "" +
 	"\x0eextra_metadata\x18\x03 \x01(\v2\x17.google.protobuf.StructR\rextraMetadata\x12\x1b\n" +
 	"\ttenant_id\x18\x04 \x01(\tR\btenantId\x12%\n" +
 	"\x0ecorrelation_id\x18\x05 \x01(\tR\rcorrelationId\x12\x17\n" +
-	"\auser_id\x18\x06 \x01(\tR\x06userIdB\x1bZ\x19github.com/ituoga/iot/genb\x06proto3"
+	"\auser_id\x18\x06 \x01(\tR\x06userIdB\"Z github.com/blinkinglight/bee/genb\x06proto3"
 
 var (
 	file_query_proto_rawDescOnce sync.Once

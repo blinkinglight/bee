@@ -1,10 +1,12 @@
 syntax = "proto3";
 
 package gen;
-option go_package = "github.com/ituoga/iot/gen"; // sugeneruos tiesiai į gen/
+option go_package = "github.com/blinkinglight/bee/gen"; 
 
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/struct.proto";
+
+import "ref.proto";
 
 message CommandEnvelope {
   string command_id = 1;
@@ -18,5 +20,7 @@ message CommandEnvelope {
   map<string, string> metadata = 9;
   google.protobuf.Struct extra_metadata = 10;
   string tenant_id = 11;
-
+  repeated ParentRef parents = 12;
 }
+
+

@@ -8,6 +8,7 @@ import (
 
 	"github.com/blinkinglight/bee"
 	"github.com/blinkinglight/bee/co"
+	"github.com/blinkinglight/bee/eo"
 	"github.com/blinkinglight/bee/gen"
 	"github.com/blinkinglight/bee/ro"
 	"github.com/delaneyj/toolbelt/embeddednats"
@@ -84,7 +85,7 @@ func client() (*nats.Conn, func(), error) {
 	server, err := embeddednats.New(
 		context.Background(),
 		embeddednats.WithShouldClearData(true),
-		embeddednats.WithDirectory("./tmp1"),
+		embeddednats.WithDirectory("./tmpdata"),
 		embeddednats.WithNATSServerOptions(&server.Options{
 			JetStream:    true,
 			NoLog:        false,
@@ -92,6 +93,7 @@ func client() (*nats.Conn, func(), error) {
 			Trace:        true,
 			TraceVerbose: true,
 			Port:         4333,
+			StoreDir:     "./tmpdata",
 		}),
 	)
 	if err != nil {
@@ -354,4 +356,99 @@ func (u *UserAggregateTest) ApplyCommand(c *gen.CommandEnvelope) ([]*gen.EventEn
 		return nil, fmt.Errorf("unknown command type: %s", c.CommandType)
 	}
 	return []*gen.EventEnvelope{event}, nil
+}
+
+func TestEvent(t *testing.T) {
+	nc, cleanup, err := client()
+
+	if err != nil {
+		t.Fatalf("Failed to create NATS client: %v", err)
+	}
+	defer cleanup()
+
+	js, err := nc.JetStream()
+	if err != nil {
+		t.Fatalf("Failed to get JetStream context: %v", err)
+	}
+	js.DeleteStream("events") // Clean up any existing stream
+	js.AddStream(&nats.StreamConfig{
+		Name:      "EVENTS",
+		Subjects:  []string{"events" + ".>"},
+		Storage:   nats.FileStorage,
+		Retention: nats.LimitsPolicy,
+		MaxAge:    0,
+		Replicas:  1,
+	})
+	ctx := bee.WithNats(t.Context(), nc)
+	ctx = bee.WithJetStream(ctx, js)
+
+	c1 := &cmd1{}
+	go bee.Command(ctx, c1, co.WithAggreate("users"))
+	go bee.Event(ctx, &EventProMgr{}, eo.WithAggreate("users"))
+
+	time.Sleep(100 * time.Millisecond) // Give some time for the event handler to start
+
+	evt1 := &gen.EventEnvelope{
+		EventType:     "created",
+		AggregateType: "users",
+		AggregateId:   "123",
+		Payload:       []byte(`{"name": "John Doe", "country": "USA"}`),
+	}
+	b1, _ := proto.Marshal(evt1)
+	_, err = js.Publish("events.users.123.created", b1)
+	if err != nil {
+		t.Fatalf("Failed to publish event: %v", err)
+	}
+
+	cm1 := &gen.CommandEnvelope{
+		CommandType: "test",
+		AggregateId: "123",
+		Aggregate:   "users",
+		Payload:     []byte(`{"name": "John Doe", "country": "USA"}`),
+	}
+	b2, _ := proto.Marshal(cm1)
+	_, err = js.PublishAsync("cmds.users.test", b2)
+	if err != nil {
+		t.Fatalf("Failed to publish command: %v", err)
+	}
+
+	time.Sleep(100 * time.Millisecond) // Wait for command processing
+	if c1.v != "got command" {
+		t.Errorf("Expected command handler to receive command, got: %s", c1.v)
+	}
+
+}
+
+type EventProMgr struct {
+}
+
+func (e *EventProMgr) Handle(event *gen.EventEnvelope) ([]*gen.CommandEnvelope, error) {
+	switch event.EventType {
+	case "created":
+		return []*gen.CommandEnvelope{{
+			CommandType: "test",
+			AggregateId: "123",
+			Aggregate:   "users",
+			Payload:     event.Payload,
+		}}, nil
+	}
+	return nil, nil
+}
+
+type cmd1 struct {
+	v string
+}
+
+func (c *cmd1) Handle(m *gen.CommandEnvelope) ([]*gen.EventEnvelope, error) {
+	switch m.CommandType {
+	case "test":
+		c.v = "got command"
+		return []*gen.EventEnvelope{{
+			EventType:     "test",
+			AggregateType: m.Aggregate,
+			AggregateId:   m.AggregateId,
+			Payload:       m.Payload,
+		}}, nil
+	}
+	return nil, nil
 }
