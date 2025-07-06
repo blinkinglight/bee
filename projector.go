@@ -3,6 +3,7 @@ package bee
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/blinkinglight/bee/gen"
 	"github.com/blinkinglight/bee/po"
@@ -44,7 +45,7 @@ func Project(ctx context.Context, fn EventApplier, opts ...po.Options) error {
 	}
 
 	if cfg.Aggregate == "" {
-		panic("aggregate is required for projection")
+		return fmt.Errorf("aggregate is required for projection")
 	}
 
 	if cfg.DurableName == "" {
@@ -60,9 +61,12 @@ func Project(ctx context.Context, fn EventApplier, opts ...po.Options) error {
 		prefix = cfg.Prefix + "_"
 	}
 
-	js, _ := JetStream(ctx)
+	js, ok := JetStream(ctx)
+	if !ok {
+		return fmt.Errorf("JetStream not available in context")
+	}
 
-	js.AddStream(&nats.StreamConfig{
+	_, _ = js.AddStream(&nats.StreamConfig{
 		Name:      "EVENTS",
 		Subjects:  []string{EventsPrefix + ".>"},
 		Storage:   nats.FileStorage,
@@ -77,11 +81,15 @@ func Project(ctx context.Context, fn EventApplier, opts ...po.Options) error {
 		}
 		m := &gen.EventEnvelope{}
 		if err := proto.Unmarshal(msg.Data, m); err != nil {
+			log.Printf("Error unmarshalling event: aggregate=%s, aggregateID=%s, eventType=%s, error=%v",
+				cfg.Aggregate, cfg.AggregateID, msg.Subject, err)
 			msg.Ack()
 			return
 		}
 
 		if err := fn.ApplyEvent(m); err != nil {
+			log.Printf("Error applying event: aggregate=%s, aggregateID=%s, eventType=%s, error=%v",
+				m.AggregateType, m.AggregateId, m.EventType, err)
 			msg.Ack()
 			return
 		}
@@ -89,7 +97,8 @@ func Project(ctx context.Context, fn EventApplier, opts ...po.Options) error {
 	}, nats.DeliverAll(), nats.ManualAck(), nats.Durable("events_"+prefix+cfg.DurableName), nats.BindStream("EVENTS"), nats.ConsumerName(cfg.DurableName))
 	if err != nil {
 		fmt.Printf("Error subscribing to events: %v\n", err)
-		return err
+		return fmt.Errorf("projector: failed to subscribe to subject %s: %w", cfg.Subject, err)
+
 	}
 	defer sub.Unsubscribe()
 

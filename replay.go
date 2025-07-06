@@ -27,7 +27,7 @@ type ReplayHandler interface {
 // ro.WithStartSeq - start from event (if you have snapshot)
 // ro.WtihParent - nests subjects
 // ro.WithTimeout - timeout if no events for stream
-func Replay(ctx context.Context, fn ReplayHandler, opts ...ro.Options) {
+func Replay(ctx context.Context, fn ReplayHandler, opts ...ro.Options) error {
 
 	cfg := &ro.Config{
 		StartSeq: DeliverAll,
@@ -65,17 +65,17 @@ func Replay(ctx context.Context, fn ReplayHandler, opts ...ro.Options) {
 	}, opt, nats.ManualAck())
 	if err != nil {
 		cancel()
-		return
+		return fmt.Errorf("projector: failed to subscribe to subject %s: %w", subject, err)
 	}
 	num, _, err := sub.MaxPending()
 	if err != nil {
 		cancel()
-		return
+		return fmt.Errorf("projector: failed to get max pending for subject %s: %w", subject, err)
 	}
 	_ = num
 	if num <= 0 {
 		cancel()
-		return
+		return fmt.Errorf("projector: no events found for subject %s", subject)
 	}
 
 	defer close(msgs)
@@ -109,6 +109,7 @@ func Replay(ctx context.Context, fn ReplayHandler, opts ...ro.Options) {
 		}
 	}()
 	<-lctx.Done()
+	return nil
 }
 
 // ReplayAndSubscribe replays events for a given aggregate and aggregate ID,
