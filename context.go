@@ -6,7 +6,7 @@ import (
 	"github.com/nats-io/nats.go"
 )
 
-type key[T any] struct{}
+type key[T any] string
 
 func with[T any](ctx context.Context, k key[T], v T) context.Context {
 	return context.WithValue(ctx, k, v)
@@ -17,7 +17,7 @@ func get[T any](ctx context.Context, k key[T]) (T, bool) {
 	return v, ok
 }
 
-var natsKey = key[*nats.Conn]{}
+var natsKey = key[*nats.Conn]("natsKey")
 
 // WithNats adds a NATS connection to the context.
 func WithNats(ctx context.Context, nc *nats.Conn) context.Context {
@@ -33,7 +33,7 @@ func Nats(ctx context.Context) (*nats.Conn, bool) {
 	return nc, true
 }
 
-var jsKey = key[nats.JetStreamContext]{}
+var jsKey = key[nats.JetStreamContext]("jsKey")
 
 // WithJetStream adds a JetStream context to the context.
 func WithJetStream(ctx context.Context, js nats.JetStreamContext) context.Context {
