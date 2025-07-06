@@ -1,9 +1,11 @@
 
-
+![tests](https://github.com/blinkinglight/bee/actions/workflows/go.yml/badge.svg)
 
 # bee - eventsourcing on nats.io
 
 Bee is a minimal Go library for implementing CQRS & Event-Sourcing using NATS JetStream as the transport and persistence layer. It offers clear abstractions with minimal dependencies and overhead.
+
+
 ![Bee](https://github.com/user-attachments/assets/660d9ae1-0c69-4263-9416-2b461bddcbd0)
 
 ## Why Bee?
