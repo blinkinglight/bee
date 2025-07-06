@@ -199,7 +199,11 @@ func (a *Aggregate) ApplyEvent(e *gen.EventEnvelope) error {
 
 ### Prebuild examples
 
-examples:
+to run examples, first you need "nats server" to run with jetstream enabled. If you dont have one, first run this:
+
+`go run ./examples/natsserver`
+
+and then all other apps from examples:
 
 `go run ./examples/subscribers`
 
