@@ -67,7 +67,7 @@ func Replay(ctx context.Context, fn ReplayHandler, opts ...ro.Options) error {
 		cancel()
 		return fmt.Errorf("projector: failed to subscribe to subject %s: %w", subject, err)
 	}
-	num, _, err := sub.MaxPending()
+	num, err := sub.InitialConsumerPending()
 	if err != nil {
 		cancel()
 		return fmt.Errorf("projector: failed to get max pending for subject %s: %w", subject, err)
@@ -82,7 +82,7 @@ func Replay(ctx context.Context, fn ReplayHandler, opts ...ro.Options) error {
 	defer sub.Unsubscribe()
 
 	go func() {
-		n := 0
+		n := uint64(0)
 		for {
 			select {
 			case <-ctx.Done():
